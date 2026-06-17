@@ -341,3 +341,141 @@ print(p_cor)
 ## start_ABL and start_ABW are correlated, so are start_biomass and density - This makes sense because they are calculated from each other. Proceed with one from each for modelling (start_ABW and density?)
 
 ### BAYESION MODELLING
+
+
+# Create scaled random effects
+df <- df |>
+  mutate(
+    start_ABW_z     = scale(start_ABW)[, 1],
+    start_density_z = scale(start_density)[, 1],
+    start_biomass_z = scale(start_biomass)[, 1],
+    start_ABL_z = scale(start_ABL)[, 1],
+    start_count_z = scale(start_count)[, 1],
+  )
+
+## ICC estimates (to determine identify potential tank clustering and see if we can aggregate to tank level)
+
+# Stratified subsample — 1,000 individuals per tank
+set.seed(42)
+df_sub <- df |>
+  group_by(tank) |>
+  slice_sample(n = 1000) |>
+  ungroup()
+
+cat("Subsampled dataset:", nrow(df_sub), "individuals across", nlevels(df_sub$tank), "tanks\n")
+
+# Run analysis on sub-sample dataset and for abalone length (mm) 
+
+icc_length <- brm(
+  formula = length_mm ~ 1 + (1 | tank),
+  data    = df_sub,
+  family  = gaussian(),
+  prior   = c(
+    prior(normal(68, 10),  class = Intercept),
+    prior(exponential(1),  class = sd),
+    prior(exponential(1),  class = sigma)
+  ),
+  chains  = 4,
+  cores   = 4,
+  iter    = 2000,
+  warmup  = 1000,
+  seed    = 42,
+  control = list(adapt_delta = 0.90)
+)
+
+summary(icc_length)
+
+var_components_len <- VarCorr(icc_length)
+print(var_components_len)
+
+draws_len   <- as_draws_df(icc_length)
+sd_tank_len  <- draws_len$`sd_tank__Intercept`
+sd_resid_len <- draws_len$sigma
+
+icc_len <- sd_tank_len^2 / (sd_tank_len^2 + sd_resid_len^2)
+
+mcmc_trace(icc_length,
+           pars = c("b_Intercept", "sd_tank__Intercept", "sigma"))
+
+# SUMMARY TABLE
+
+icc_summary <- tibble(
+  outcome    = c("length_mm"),
+  icc_mean   = c(mean(icc_len)),
+  icc_median = c(median(icc_len)),
+  icc_lower  = c(quantile(icc_len,  0.025)),
+  icc_upper  = c(quantile(icc_len,  0.975)),
+  sd_tank    = c(mean(sd_tank_len)),
+  sd_resid   = c(mean(sd_resid_len))
+) |>
+  mutate(across(where(is.numeric), ~ round(.x, 4)))
+
+print(icc_summary)
+
+## Tank membership explains approx. 10% of variation between abalone length
+
+## Bayesian mixed models — aggregated to tank level to conserve proccessing speed
+
+# Aggregate data to tank level
+
+tank_df <- df |>
+  group_by(tank, diet) |>
+  summarise(
+    mean_log_weight = mean(log_weight),
+    se_log_weight   = sd(log_weight) / sqrt(n()),
+    mean_weight_g   = mean(weight_g),
+    se_weight_g     = sd(weight_g)   / sqrt(n()),
+    mean_length_mm  = mean(length_mm),
+    se_length_mm    = sd(length_mm)  / sqrt(n()),
+    start_ABW_z     = first(start_ABW_z),
+    start_density_z = first(start_density_z),
+    start_biomass_z = first(start_biomass_z),
+    start_ABL_z     = first(start_ABL_z),
+    start_count_z = first(start_count_z),
+    n               = n(),
+    .groups = "drop"
+  )
+
+cat("Tank-level data (n =", nrow(tank_df), "rows — one per tank):\n")
+print(tank_df)
+
+## LENGTH MODELS
+
+# MODEL A1: Gaussian with default priors
+
+fit_length_default <- brm(
+  formula  = mean_length_mm ~
+               diet + start_ABW_z + start_density_z,
+  data     = tank_df,
+  family   = gaussian(),
+  chains   = 4,
+  cores    = 4,
+  iter     = 2000,
+  warmup   = 1000,
+  seed     = 42,
+  control  = list(adapt_delta = 0.95)
+)
+
+summary(fit_length_default) 
+
+# MODEL A2: Gaussian with weakly informative priors
+
+fit_length_informative <- brm(
+  formula  = mean_length_mm ~
+               diet + start_ABW_z + start_density_z,
+  data     = tank_df,
+  family   = gaussian(),
+  prior   = c(
+    prior(student_t(3, 68, 10), class = Intercept),
+    prior(normal(0, 5),         class = b),
+    prior(exponential(1),       class = sigma)
+  ),
+  chains   = 4,
+  cores    = 4,
+  iter     = 2000,
+  warmup   = 1000,
+  seed     = 42,
+  control  = list(adapt_delta = 0.95)
+)
+
+summary(fit_length_informative)
