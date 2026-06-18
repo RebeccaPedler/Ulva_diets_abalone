@@ -1,5 +1,5 @@
 ### Install packages
-install.packages(c("tidyverse","brms","ggplot2","patchwork","scales", "bayesplot","tidybayes","posterior","ggcorrplot", "ggpubr", "posterior"))
+install.packages(c("tidyverse","brms","ggplot2","patchwork","scales", "bayesplot","tidybayes","posterior","ggcorrplot", "ggpubr", "posterior", "scales"))
  
 library(tidyverse)
 library(brms)
@@ -12,6 +12,7 @@ library(posterior)
 library(ggpubr)
 library(ggcorrplot)
 library(posterior)
+library(scales)
 
 ### LOAD DATA
 
@@ -195,7 +196,7 @@ p_wt_box
 ## Numerical summaries
 
 # Define variables
-response_vars <- c("length_mm", "weight_g", "condition")
+response_vars <- c("length_mm", "weight_g")
 
 # Create table
 for (v in response_vars) {
@@ -217,16 +218,22 @@ for (v in response_vars) {
   print(out, row.names = FALSE)
 }
 
-## CHECK ALL STARTING CONDITIONS
+## CHECK ALL CONDITIONS
 
-# Collapse to one row per tank — start values are constant within tank
+# Collapse to one row per tank 
 tank_df <- df |>
   group_by(tank, diet) |>
   summarise(
-    start_ABL     = first(start_ABL),
-    start_ABW     = first(start_ABW),
-    start_density = first(start_density),
-    start_biomass = first(start_biomass),
+    start_density   = first(start_density),
+    end_density     = last(end_density),
+    start_biomass   = first(start_biomass),
+    start_count     = first(start_count),
+    end_count       = last(end_count),
+    start_ABW       = first(start_ABW),
+    start_ABL       = first(start_ABL),
+    mortality_p     = last(mortality_p),
+    per_capita_feed = last(per_capita_feed),
+    diet_cost       = first(diet_cost),
     .groups = "drop"
   )
  
@@ -238,8 +245,8 @@ tank_df |>
   print(row.names = FALSE)
  
 # Summary by diet
-cat("\n  Starting values summarised by diet:\n")
-start_vars <- c("start_ABL", "start_ABW", "start_density", "start_biomass")
+start_vars <- c("start_ABL", "start_ABW", "start_density", "start_biomass", "start_count", 
+                "end_density", "end_count", "mortality_p", "per_capita_feed")
 for (v in start_vars) {
   cat(sprintf("\n--- %s ---\n", v))
   tank_df |>
@@ -265,58 +272,7 @@ for (v in start_vars) {
               kt$statistic,
               kt$parameter,
               kt$p.value,
-              ifelse(kt$p.value < 0.05, "<-- potentially imbalanced", "")))
-}
-
-## CHECK ALL STARTING CONDITIONS
-
-# Collapse to one row per tank — start values are constant within tank
-tank_df <- df |>
-  group_by(tank, diet) |>
-  summarise(
-    start_ABL     = first(start_ABL),
-    start_ABW     = first(start_ABW),
-    start_density = first(start_density),
-    start_biomass = first(start_biomass),
-    start_count   = first(start_count),
-    mortality     = first(mortality_p),
-    .groups = "drop"
-  )
- 
-# Print tank-level table
-tank_df |>
-  mutate(across(where(is.numeric), ~ round(.x, 3))) |>
-  as.data.frame() |>
-  print(row.names = FALSE)
- 
-# Summary by diet
-start_vars <- c("start_ABL", "start_ABW", "start_density", "start_biomass", "start_count", "mortality")
-for (v in start_vars) {
-  cat(sprintf("\n--- %s ---\n", v))
-  tank_df |>
-    group_by(diet) |>
-    summarise(
-      n      = n(),
-      mean   = round(mean(.data[[v]]),   3),
-      sd     = round(sd(.data[[v]]),     3),
-      min    = round(min(.data[[v]]),    3),
-      max    = round(max(.data[[v]]),    3),
-      range  = round(max(.data[[v]]) - min(.data[[v]]), 3),
-      .groups = "drop"
-    ) |>
-    as.data.frame() |>
-    print(row.names = FALSE)
-}
-  
-# One-way ANOVA / Kruskal-Wallis to see if sig difference between any start values
-for (v in start_vars) {
-  kt <- kruskal.test(reformulate("diet", v), data = tank_df)
-  cat(sprintf("  %-20s  chi² = %5.2f,  df = %d,  p = %.4f  %s\n",
-              v,
-              kt$statistic,
-              kt$parameter,
-              kt$p.value,
-              ifelse(kt$p.value < 0.05, "<-- potentially imbalanced", "")))
+              ifelse(kt$p.value < 0.05, "check", "")))
 }
 
 ### CORRELATION BETWEEN MODERATORS
@@ -325,7 +281,7 @@ for (v in start_vars) {
 
 # Pearson correlation among moderators
 mod_mat <- tank_df |>
-  dplyr::select(start_ABL, start_ABW, start_density, start_biomass) |>
+  dplyr::select(start_ABL, start_ABW, start_density, start_biomass, end_density, mortality_p, per_capita_feed) |>
   as.data.frame()
  
 cor_r <- cor(mod_mat, method = "pearson")
@@ -348,18 +304,24 @@ p_cor <- ggcorrplot(
  
 print(p_cor)
 
-## start_ABL and start_ABW are correlated, so are start_biomass and density - This makes sense because they are calculated from each other. Proceed with one from each for modelling (start_ABW and density?)
+## start_ABL and start_ABW are correlated, so are start_biomass and density - This makes sense because they are calculated from each other. Proceed with one from each for modelling (start_ABW and density)
+## end_density and mortality_p are also correlated - again makes sense - less abalone = less density within tanks
+## end_density and per_capita_feed weakly correlated 
 
 ### BAYESION MODELLING
 
 # Create scaled random effects
 df <- df |>
   mutate(
-    start_ABW_z     = scale(start_ABW)[, 1],
-    start_density_z = scale(start_density)[, 1],
-    start_biomass_z = scale(start_biomass)[, 1],
-    start_ABL_z = scale(start_ABL)[, 1],
-    start_count_z = scale(start_count)[, 1],
+    start_ABW_z       = scale(start_ABW)[, 1],
+    start_density_z   = scale(start_density)[, 1],
+    start_biomass_z   = scale(start_biomass)[, 1],
+    start_ABL_z       = scale(start_ABL)[, 1],
+    start_count_z     = scale(start_count)[, 1],
+    per_capita_feed_z = scale(per_capita_feed) [,1],
+    mortality_p_z     = scale(mortality_p) [,1],
+    end_density_z     = scale(end_density)[, 1], 
+    mortality_p_z       = scale(mortality_p) [, 1]  
   )
 
 ## ICC estimates (to determine identify potential tank clustering and see if we can aggregate to tank level)
@@ -425,27 +387,30 @@ print(icc_summary)
 
 ## Bayesian mixed models — aggregated to tank level to conserve proccessing speed
 # Aggregate data to tank level
-
 tank_df <- df |>
   group_by(tank, diet) |>
   summarise(
-    mean_log_weight = mean(log_weight),
-    se_log_weight   = sd(log_weight) / sqrt(n()),
-    mean_weight_g   = mean(weight_g),
-    se_weight_g     = sd(weight_g)   / sqrt(n()),
-    mean_length_mm  = mean(length_mm),
-    se_length_mm    = sd(length_mm)  / sqrt(n()),
-    start_ABW_z     = first(start_ABW_z),
-    start_density_z = first(start_density_z),
-    start_biomass_z = first(start_biomass_z),
-    start_ABL_z     = first(start_ABL_z),
-    start_count_z = first(start_count_z),
-    n               = n(),
+    mean_log_weight    = mean(log_weight),
+    se_log_weight      = sd(log_weight) / sqrt(n()),
+    mean_weight_g      = mean(weight_g),
+    se_weight_g        = sd(weight_g)   / sqrt(n()),
+    mean_length_mm     = mean(length_mm),
+    se_length_mm       = sd(length_mm)  / sqrt(n()),
+    start_ABW_z        = first(start_ABW_z),
+    start_density_z    = first(start_density_z),
+    start_biomass_z    = first(start_biomass_z),
+    start_ABL_z        = first(start_ABL_z),
+    start_count_z      = first(start_count_z),
+    per_capita_feed    = first(per_capita_feed),
+    per_capita_feed_z  = first(per_capita_feed_z),
+    mortality_p_z      = first(mortality_p_z), 
+    mortality          = first(mortality_p),
+    end_density_z      = first(end_density_z),
+    diet_cost          = first(diet_cost),
+    n                  = n(),
     .groups = "drop"
   )
 
-cat("Tank-level data (n =", nrow(tank_df), "rows — one per tank):\n")
-print(tank_df)
 
 ## CREATE PRIORS FOR ALL MODELS 
 
@@ -479,7 +444,7 @@ priors_logwt_wide <- c(
 # MODEL A1: Gaussian with default priors
 
 fit_length_default <- brm(
-  formula  = mean_length_mm ~ diet + start_ABW_z + start_density_z + start_count_z,
+  formula  = mean_length_mm ~ diet + start_ABW_z + per_capita_feed_z,
   data     = tank_df,
   family   = gaussian(),
   chains   = 4,
@@ -496,10 +461,10 @@ pp_check(fit_length_default)
 # MODEL A2: Gaussian with weakly informative priors
 
 fit_length_informative <- brm(
-  formula  = mean_length_mm ~ diet + start_ABW_z + start_density_z + start_count_z,
+  formula  = mean_length_mm ~ diet + start_ABW_z + per_capita_feed_z,
   data     = tank_df,
   family   = gaussian(),
-  prior   = priors_length,
+  prior    = priors_length,
   chains   = 4,
   cores    = 4,
   iter     = 2000,
@@ -514,7 +479,7 @@ pp_check(fit_length_informative)
 # MODEL A3: Gaussian with less informative priors (wide normal distribution)
 
 fit_length_informative_wide <- brm(
-  formula  = mean_length_mm ~ diet + start_ABW_z + start_density_z + start_count_z,
+  formula  = mean_length_mm ~ diet + start_ABW_z + per_capita_feed_z,
   data     = tank_df,
   family   = gaussian(),
   prior   = priors_length_wide,
@@ -529,9 +494,9 @@ fit_length_informative_wide <- brm(
 summary(fit_length_informative_wide)
 pp_check(fit_length_informative_wide)
 
-# MODEL A4: Drop start count
-fit_length_2cov <- brm(
-  formula  = mean_length_mm ~ diet + start_ABW_z + start_density_z,
+# MODEL A4: Sensitivity test (add mortality_p) - with weakly informative priors
+fit_length_sens <- brm(
+  formula  = mean_length_mm ~ diet + start_ABW_z + per_capita_feed_z + mortality_p_z,
   data     = tank_df,
   family   = gaussian(),
   prior    = priors_length,         
@@ -542,29 +507,26 @@ fit_length_2cov <- brm(
   seed     = 42,
   control  = list(adapt_delta = 0.95)
 )
-summary(fit_length_2cov)
-pp_check(fit_length_2cov)
-
-## Continue with model 2 as the final and without start_count_z (does not add any explanatory power) and with more iterations
+summary(fit_length_sens)
+pp_check(fit_length_sens)
 
 ### LEAVE-ONE-OUT COMPARISON — LENGTH
 fit_length_default          <- add_criterion(fit_length_default,          "loo", moment_match = TRUE)
 fit_length_informative      <- add_criterion(fit_length_informative,      "loo", moment_match = TRUE)
 fit_length_informative_wide <- add_criterion(fit_length_informative_wide, "loo", moment_match = TRUE)
-fit_length_2cov             <- add_criterion(fit_length_2cov,             "loo", moment_match = TRUE)
+fit_length_sens             <- add_criterion(fit_length_sens,             "loo", moment_match = TRUE)
 
-loo(fit_length_2cov)        # elpd_loo, p_loo, Pareto-k table
-
+# compare LOO
 loo_compare(
   fit_length_default,
   fit_length_informative,
   fit_length_informative_wide,
-  fit_length_2cov
+  fit_length_sens
 ) 
 
 # Do additional sensitivity test for priors
 fit_prior_only <- brm(
-  formula = mean_log_weight ~ diet + start_ABW_z + start_density_z,
+  formula = mean_log_weight ~ diet + start_ABW_z + per_capita_feed_z,
   data    = tank_df,
   family  = gaussian(),
   prior   = priors_logwt_2cov,
@@ -576,12 +538,37 @@ fit_prior_only <- brm(
 )
 pp_check(fit_prior_only) # Confirms that weakly informed prior improve fit
 
+## Continue with model 2 as the final and with more iterations
+
+fit_length_final <- brm(
+  formula  = mean_length_mm ~ diet + start_ABW_z + per_capita_feed_z,
+  data     = tank_df,
+  family   = gaussian(),
+  prior    = priors_length,
+  chains   = 4,
+  cores    = 4,
+  iter     = 4000,
+  warmup   = 2000,
+  seed     = 42,
+  control  = list(adapt_delta = 0.95)
+)
+
+summary(fit_length_final)
+pp_check(fit_length_final)
+
+# Check all diagnostics
+pp_check(fit_length_final)
+pp_check(fit_length_final, type = "stat", stat = "mean")
+pp_check(fit_length_final, type = "stat", stat = "sd")
+mcmc_plot(fit_length_final, type = "trace")
+loo(fit_length_final)
+
 ## WEIGHT MODELS
 
 # MODEL B1: Gaussian with default priors
 
 fit_weight_default <- brm(
-  formula  = mean_log_weight ~ diet + start_ABW_z + start_density_z + start_count_z,
+  formula  = mean_log_weight ~ diet + start_ABW_z + per_capita_feed_z,
   data     = tank_df,
   family   = gaussian(),
   chains   = 4,
@@ -598,10 +585,10 @@ pp_check(fit_weight_default)
 # MODEL B2: Gaussian with weakly informative priors
 
 fit_weight_informative <- brm(
-  formula  = mean_log_weight ~ diet + start_ABW_z + start_density_z + start_count_z,
+  formula  = mean_log_weight ~ diet + start_ABW_z + per_capita_feed_z,
   data     = tank_df,
   family   = gaussian(),
-  prior   = priors_logwt,
+  prior    = priors_logwt,
   chains   = 4,
   cores    = 4,
   iter     = 2000,
@@ -616,10 +603,10 @@ pp_check(fit_weight_informative)
 # MODEL B3: Gaussian with less informative priors (wide normal distribution)
 
 fit_weight_informative_wide <- brm(
-  formula  = mean_log_weight ~ diet + start_ABW_z + start_density_z + start_count_z,
+  formula  = mean_log_weight ~ diet + start_ABW_z + per_capita_feed_z,
   data     = tank_df,
   family   = gaussian(),
-  prior   = priors_logwt_wide,
+  prior    = priors_logwt_wide,
   chains   = 4,
   cores    = 4,
   iter     = 2000,
@@ -631,9 +618,9 @@ fit_weight_informative_wide <- brm(
 summary(fit_weight_informative_wide)
 pp_check(fit_weight_informative_wide)
 
-# MODEL B4: Gaussian, weakly informative priors, two covariates (drops start_count_z)
-fit_weight_2cov <- brm(
-  formula  = mean_log_weight ~ diet + start_ABW_z + start_density_z,
+# MODEL B4: Sensitivity test (add mortality_p) - with weakly informative priors
+fit_weight_sens <- brm(
+  formula  = mean_log_weight ~ diet + start_ABW_z + per_capita_feed_z + mortality_p_z,
   data     = tank_df,
   family   = gaussian(),
   prior    = priors_logwt,
@@ -645,41 +632,71 @@ fit_weight_2cov <- brm(
   control  = list(adapt_delta = 0.95)
 )
 
-summary(fit_weight_2cov)
+summary(fit_weight_sens)
 
 # LEAVE-ONE-OUT COMPARISON
 
 fit_weight_default          <- add_criterion(fit_weight_default,          "loo", moment_match = TRUE)
 fit_weight_informative      <- add_criterion(fit_weight_informative,      "loo", moment_match = TRUE)
 fit_weight_informative_wide <- add_criterion(fit_weight_informative_wide, "loo", moment_match = TRUE)
-fit_weight_2cov             <- add_criterion(fit_weight_2cov,             "loo", moment_match = TRUE)
+fit_weight_sens             <- add_criterion(fit_weight_sens,             "loo", moment_match = TRUE)
 
 ## Inspect a single model's LOO (elpd_loo, p_loo, Pareto-k diagnostics)
-loo(fit_weight_2cov)
+loo(fit_weight_sens)
 
 ## Rank all candidates based on elpd_diff
 loo_compare(
   fit_weight_default,
   fit_weight_informative,
   fit_weight_informative_wide,
-  fit_weight_2cov
+  fit_weight_sens
 )
 
-## Continue with model B4 as the final and without start_count_z and start_density_z(does not add any explanatory power) and with more iterations
+## Continue with model B2 as the final and with more iterations
+
+fit_weight_final <- brm(
+  formula  = mean_log_weight ~ diet + start_ABW_z + per_capita_feed_z, 
+  data     = tank_df,
+  family   = gaussian(),
+  prior    = priors_logwt,
+  chains   = 4,
+  cores    = 4,
+  iter     = 2000,
+  warmup   = 1000,
+  seed     = 42,
+  control  = list(adapt_delta = 0.95)
+)
+
+summary(fit_weight_final)
 
 # Check all diagnostics
-pp_check(fit_weight_2cov)
-pp_check(fit_weight_2cov, type = "stat", stat = "mean")
-pp_check(fit_weight_2cov, type = "stat", stat = "sd")
-mcmc_plot(fit_weight_2cov, type = "trace")
-loo(fit_weight_2cov)
+pp_check(fit_weight_final)
+pp_check(fit_weight_final, type = "stat", stat = "mean")
+pp_check(fit_weight_final, type = "stat", stat = "sd")
+mcmc_plot(fit_weight_final, type = "trace")
+loo_weight_final <- loo(fit_weight_final)
+
+# Check any tanks with pareto_k > 0.7
+pareto_k <- loo_weight_final$diagnostics$pareto_k
+pareto_k
+which(pareto_k > 0.7)
+
+# Check tanks E04 and E13
+tank_df[c(4, 5), ]
+
+# Refit with moment matching
+loo_weight_final_mm <- loo(fit_weight_final, moment_match = TRUE)
+loo_weight_final_mm
+
+# Rows 4 and 5 were influential, but they were not so extreme that LOO failed completely. 
+# Moment matching adjusted the approximation, and the overall estimates barely changed. That is reassuring.
 
 # Do additional sensitivity test for priors
 fit_prior_only <- brm(
   formula = mean_log_weight ~ diet + start_ABW_z + start_density_z,
   data    = tank_df,
   family  = gaussian(),
-  prior   = priors_logwt_2cov,
+  prior   = priors_logwt,
   sample_prior = "only",
   chains  = 4, 
   cores = 4, 
@@ -689,34 +706,76 @@ fit_prior_only <- brm(
 pp_check(fit_prior_only) # Confirms that weakly informed prior improve fit
 
 ## Summary table for both models
-summarise_final <- function(fit, response, scale = c("identity", "log")) {
+## Summary table for both models — log scale, proportional (%), and grams
+summarise_final <- function(fit, response, scale = c("identity", "log"),
+                            ref_weight = NA_real_) {
   scale <- match.arg(scale)
-  b <- as_draws_df(fit)$b_dietulva    # posterior draws of the Ulva effect
+  b <- as_draws_df(fit)$b_dietulva
 
+  # proportional effect (log weight)
+  pct <- if (scale == "log") exp(b) - 1 else NULL
+
+  # absolute grams gain = proportional effect x reference control weight (g)
+  gms <- if (scale == "log" && !is.na(ref_weight)) pct * ref_weight else NULL
   tibble(
-    response   = response,
-    scale      = scale,
-    mean       = mean(b),
-    median     = median(b),
-    sd         = sd(b),
-    lower95    = quantile(b, 0.025),
-    upper95    = quantile(b, 0.975),
-    p_gt_0     = mean(b > 0),
-    # back-transformed proportional effect (only meaningful on the log model)
-    pct_mean   = if (scale == "log") mean(exp(b) - 1)            else NA_real_,
-    pct_median = if (scale == "log") median(exp(b) - 1)         else NA_real_,
-    pct_lower95= if (scale == "log") quantile(exp(b) - 1, 0.025) else NA_real_,
-    pct_upper95= if (scale == "log") quantile(exp(b) - 1, 0.975) else NA_real_
+    response    = response,
+    scale       = scale,
+    # --- model (link) scale ---
+    mean        = mean(b),
+    median      = median(b),
+    sd          = sd(b),
+    lower95     = quantile(b, 0.025),
+    upper95     = quantile(b, 0.975),
+    p_gt_0      = mean(b > 0),
+    # proportional (%) effect: log model only 
+    pct_mean    = if (scale == "log") mean(pct)            else NA_real_,
+    pct_median  = if (scale == "log") median(pct)          else NA_real_,
+    pct_lower95 = if (scale == "log") quantile(pct, 0.025) else NA_real_,
+    pct_upper95 = if (scale == "log") quantile(pct, 0.975) else NA_real_,
+    # absolute grams gain: log model only, needs ref_weight 
+    g_mean      = if (!is.null(gms)) mean(gms)            else NA_real_,
+    g_median    = if (!is.null(gms)) median(gms)          else NA_real_,
+    g_lower95   = if (!is.null(gms)) quantile(gms, 0.025) else NA_real_,
+    g_upper95   = if (!is.null(gms)) quantile(gms, 0.975) else NA_real_
   )
 }
 
+## Reference control weight (g) — the baseline the % gain is applied to.
+ref_control_weight <- df |>
+  filter(diet == "control") |>
+  summarise(w = mean(weight_g)) |>
+  pull(w)
+
 final_summary <- bind_rows(
-  summarise_final(fit_length_2cov, "length_mm",  scale = "identity"),
-  summarise_final(fit_weight_2cov, "log_weight", scale = "log")
+  summarise_final(fit_length_final, "length_mm",  scale = "identity"),
+  summarise_final(fit_weight_final, "log_weight", scale = "log",
+                  ref_weight = ref_control_weight)
 ) |>
   mutate(across(where(is.numeric), ~ round(.x, 4)))
 
 print(as.data.frame(final_summary), row.names = FALSE)
 
-# Save for the economic analysis to read in
-write.csv(final_summary, "final_model_summary.csv", row.names = FALSE)
+## Sensitivity check - How much of mortality was driven by diet
+
+
+
+### NEED TO DO THIS
+
+### Next - economic break-even
+
+# Fit model for weight without correcting for feed availability
+fit_weight_informative_uncorrected <- brm(
+  formula  = mean_log_weight ~ diet + start_ABW_z,
+  data     = tank_df,
+  family   = gaussian(),
+  prior    = priors_logwt,
+  chains   = 4,
+  cores    = 4,
+  iter     = 4000,
+  warmup   = 2000,
+  seed     = 42,
+  control  = list(adapt_delta = 0.95)
+)
+
+summary(fit_weight_informative_uncorrected)
+
