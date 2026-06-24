@@ -1,14 +1,12 @@
 ### Install packages
-install.packages(c("tidyverse","brms","ggplot2","patchwork","scales", "bayesplot","tidybayes","posterior","ggcorrplot", "ggpubr", "posterior", "scales"))
+install.packages(c("tidyverse","brms","ggplot2","patchwork","scales", "bayesplot","tidybayes","posterior","ggcorrplot", "ggpubr"))
  
 library(tidyverse)
 library(brms)
 library(ggplot2)
 library(patchwork)
-library(scales)
 library(bayesplot)
 library(tidybayes)
-library(posterior)
 library(ggpubr)
 library(ggcorrplot)
 library(posterior)
@@ -21,6 +19,33 @@ df_raw     <- read.csv("individual_abalone_data.csv") # Abalone growth data
 df_counts  <- read.csv("per_feed_capita.csv") # Running mortality, tank counts, and feed per capita data
 str(df_raw)
 str(df_counts)
+
+# Make tank and diet factors
+df <- df_raw |>
+    mutate(
+    tank = factor(tank),
+    diet = factor(diet, levels = c("control", "ulva", "wakame")),
+    log_weight = log(weight_g),
+    log_length = log(length_mm)
+  )
+
+# Create colour palette for plots
+diet_cols <- c(
+  "control" = "#8DB4C8",   
+  "ulva"    = "#6DAA6E",
+  "wakame"  = "#ABA300"
+)
+
+### CLEAN AND INSPECT DATA
+
+# Check for missing data
+missing_summary <- df_raw |>
+  summarise(across(everything(), ~ sum(is.na(.)))) |>
+  pivot_longer(everything(), names_to = "variable", values_to = "n_missing") |>
+  mutate(pct_missing = round(n_missing / nrow(df) * 100, 2)) |>
+  filter(n_missing > 0)
+
+print(missing_summary) # dataframe is empty
 
 # Filter out biologically implausible values (abalone below 10g or above 150g) 
 n_before <- nrow(df_raw)
@@ -35,33 +60,6 @@ df <- df_raw |>
 n_removed <- n_before - nrow(df)
 cat(sprintf("  Removed %d rows (%d remaining)\n", n_removed, nrow(df)))
 
-# Make tank and diet factors
-df <- df |>
-    mutate(
-    tank = factor(tank),
-    diet = factor(diet, levels = c("control", "ulva", "wakame")),
-    log_weight = log(weight_g),
-    log_length = log(length_mm)
-  )
-
-## Check for missing data
-missing_summary <- df_raw |>
-  summarise(across(everything(), ~ sum(is.na(.)))) |>
-  pivot_longer(everything(), names_to = "variable", values_to = "n_missing") |>
-  mutate(pct_missing = round(n_missing / nrow(df) * 100, 2)) |>
-  filter(n_missing > 0)
-
-print(missing_summary) # dataframe is empty
-
-# Create colour palette for plots
-diet_cols <- c(
-  "control" = "#8DB4C8",   
-  "ulva"    = "#6DAA6E",
-  "wakame"  = "#ABA300"
-)
-
-### CLEAN DATA
-
 ## Check sample sizes
 df |>
   count(diet, name = "n_individuals") |>
@@ -75,7 +73,7 @@ df |>
   as.data.frame() |>
   print(row.names = FALSE)
  
-## Detect outliers, clean and generate numerical summarise
+## Detect outliers and generate numerical summarise
 
 # Detect outliers in length_mm only
 flag_outliers <- function(data, var) {
@@ -128,11 +126,9 @@ cat(sprintf("\n  Within-tank outliers (|z|>3) for weight_g: %d rows\n", nrow(out
     print(as.data.frame(large), row.names = FALSE)
   }
 
-### INSPECT DATA
+### CREATE HISTOGRAMS
 
-## Histograms
-
-# Helper: histogram + density coloured by diet
+# Function: histogram + density coloured by diet
 hist_diet <- function(var, xlab, binwidth = NULL) {
   p <- ggplot(df, aes(x = .data[[var]], fill = diet, colour = diet)) +
     geom_histogram(
@@ -154,7 +150,7 @@ hist_diet <- function(var, xlab, binwidth = NULL) {
   p
 }
  
-# Helper: boxplot by tank, coloured by diet
+# Function: boxplot by tank, coloured by diet
 box_tank <- function(var, ylab) {
   ggplot(df, aes(x = tank, y = .data[[var]], fill = diet)) +
     geom_boxplot(
@@ -311,20 +307,6 @@ print(p_cor)
 
 ### BAYESION MODELLING
 
-# Create scaled random effects
-df <- df |>
-  mutate(
-    start_ABW_z       = scale(start_ABW)[, 1],
-    start_density_z   = scale(start_density)[, 1],
-    start_biomass_z   = scale(start_biomass)[, 1],
-    start_ABL_z       = scale(start_ABL)[, 1],
-    start_count_z     = scale(start_count)[, 1],
-    per_capita_feed_z = scale(per_capita_feed) [,1],
-    mortality_p_z     = scale(mortality_p) [,1],
-    end_density_z     = scale(end_density)[, 1], 
-    mortality_p_z       = scale(mortality_p) [, 1]  
-  )
-
 ## ICC estimates (to determine identify potential tank clustering and see if we can aggregate to tank level)
 
 # Stratified subsample — 1,000 individuals per tank
@@ -369,7 +351,7 @@ icc_len <- sd_tank_len^2 / (sd_tank_len^2 + sd_resid_len^2)
 mcmc_trace(icc_length,
            pars = c("b_Intercept", "sd_tank__Intercept", "sigma"))
 
-# SUMMARY TABLE
+# Summary table
 
 icc_summary <- tibble(
   outcome    = c("length_mm"),
@@ -392,42 +374,37 @@ tank_df <- df |>
   group_by(tank, diet) |>
   summarise(
     mean_log_weight    = mean(log_weight),
-    se_log_weight      = sd(log_weight) / sqrt(n()),
     mean_weight_g      = mean(weight_g),
-    se_weight_g        = sd(weight_g)   / sqrt(n()),
     mean_length_mm     = mean(length_mm),
-    se_length_mm       = sd(length_mm)  / sqrt(n()),
-    start_ABW_z        = first(start_ABW_z),
-    start_density_z    = first(start_density_z),
-    start_biomass_z    = first(start_biomass_z),
-    start_ABL_z        = first(start_ABL_z),
-    start_count_z      = first(start_count_z),
+    start_ABW          = first(start_ABW),
+    start_density      = first(start_density),
+    start_biomass      = first(start_biomass),
+    start_ABL          = first(start_ABL),
+    start_count        = first(start_count),
     per_capita_feed    = first(per_capita_feed),
-    per_capita_feed_z  = first(per_capita_feed_z),
-    mortality_p_z      = first(mortality_p_z), 
+    per_capita_feed    = first(per_capita_feed),
     mortality          = first(mortality_p),
-    end_density_z      = first(end_density_z),
+    end_density        = first(end_density),
     diet_cost          = first(diet_cost),
     n                  = n(),
     .groups = "drop"
   )
 
+ # Create scaled random effects
+tank_df <- tank_df |>
+  mutate(
+    start_ABW_z         = scale(start_ABW)[, 1],
+    start_density_z     = scale(start_density)[, 1],
+    start_biomass_z     = scale(start_biomass)[, 1],
+    start_ABL_z         = scale(start_ABL)[, 1],
+    start_count_z       = scale(start_count)[, 1],
+    per_capita_feed_z   = scale(per_capita_feed) [,1],
+    mortality_z         = scale(mortality) [,1],
+    end_density_z       = scale(end_density)[, 1], 
+  )
 
 ## CREATE PRIORS FOR ALL MODELS 
-
-priors_length <- c(
-  prior(student_t(3, 68, 10),   class = Intercept),
-  prior(normal(0, 2.5),         class = b),
-  prior(exponential(1),         class = sigma)
-)
-
-priors_length_wide <- c(
-  prior(student_t(3, 68, 10),  class = Intercept),
-  prior(normal(0, 10),         class = b),
-  prior(exponential(1),        class = sigma)
-)
  
-# log(weight) sits on a much smaller scale, so its priors are scaled to match
 priors_logwt <- c(
   prior(student_t(3, 3.7, 1), class = Intercept),
   prior(normal(0, 1),         class = b),
@@ -439,130 +416,6 @@ priors_logwt_wide <- c(
   prior(normal(0, 5),         class = b),
   prior(exponential(1),       class = sigma)
 )
-
-## LENGTH MODELS
-
-# MODEL A1: Gaussian with default priors
-
-fit_length_default <- brm(
-  formula  = mean_length_mm ~ diet + per_capita_feed_z,
-  data     = tank_df,
-  family   = gaussian(),
-  chains   = 4,
-  cores    = 4,
-  iter     = 2000,
-  warmup   = 1000,
-  seed     = 42,
-  control  = list(adapt_delta = 0.95)
-)
-
-summary(fit_length_default) 
-pp_check(fit_length_default)
-
-# MODEL A2: Gaussian with weakly informative priors
-
-fit_length_informative <- brm(
-  formula  = mean_length_mm ~ diet + per_capita_feed_z,
-  data     = tank_df,
-  family   = gaussian(),
-  prior    = priors_length,
-  chains   = 4,
-  cores    = 4,
-  iter     = 2000,
-  warmup   = 1000,
-  seed     = 42,
-  control  = list(adapt_delta = 0.95)
-)
-
-summary(fit_length_informative)
-pp_check(fit_length_informative)
-
-# MODEL A3: Gaussian with less informative priors (wide normal distribution)
-
-fit_length_informative_wide <- brm(
-  formula  = mean_length_mm ~ diet + per_capita_feed_z,
-  data     = tank_df,
-  family   = gaussian(),
-  prior   = priors_length_wide,
-  chains   = 4,
-  cores    = 4,
-  iter     = 2000,
-  warmup   = 1000,
-  seed     = 42,
-  control  = list(adapt_delta = 0.95)
-)
-
-summary(fit_length_informative_wide)
-pp_check(fit_length_informative_wide)
-
-# MODEL A4: Sensitivity test (add mortality_p) - with weakly informative priors
-fit_length_sens <- brm(
-  formula  = mean_length_mm ~ diet + per_capita_feed_z + mortality_p_z,
-  data     = tank_df
-  family   = gaussian(),
-  prior    = priors_length,         
-  chains   = 4,
-  cores    = 4,
-  iter     = 2000,
-  warmup   = 1000,
-  seed     = 42,
-  control  = list(adapt_delta = 0.95)
-)
-summary(fit_length_sens)
-pp_check(fit_length_sens)
-
-### LEAVE-ONE-OUT COMPARISON — LENGTH
-fit_length_default          <- add_criterion(fit_length_default,          "loo", moment_match = TRUE)
-fit_length_informative      <- add_criterion(fit_length_informative,      "loo", moment_match = TRUE)
-fit_length_informative_wide <- add_criterion(fit_length_informative_wide, "loo", moment_match = TRUE)
-fit_length_sens             <- add_criterion(fit_length_sens,             "loo", moment_match = TRUE)
-
-# compare LOO
-loo_compare(
-  fit_length_default,
-  fit_length_informative,
-  fit_length_informative_wide,
-  fit_length_sens
-) 
-
-# Do additional sensitivity test for priors
-fit_prior_only <- brm(
-  formula = mean_log_weight ~ diet + per_capita_feed_z,
-  data    = tank_df,
-  family  = gaussian(),
-  prior   = priors_logwt_2cov,
-  sample_prior = "only",
-  chains  = 4, 
-  cores = 4, 
-  iter = 2000, 
-  seed = 42
-)
-pp_check(fit_prior_only) # Confirms that weakly informed prior improve fit
-
-## Continue with model 2 as the final and with more iterations
-
-fit_length_final <- brm(
-  formula  = mean_length_mm ~ diet + per_capita_feed_z,
-  data     = tank_df,
-  family   = gaussian(),
-  prior    = priors_length,
-  chains   = 4,
-  cores    = 4,
-  iter     = 4000,
-  warmup   = 2000,
-  seed     = 42,
-  control  = list(adapt_delta = 0.95)
-)
-
-summary(fit_length_final)
-pp_check(fit_length_final)
-
-# Check all diagnostics
-pp_check(fit_length_final)
-pp_check(fit_length_final, type = "stat", stat = "mean")
-pp_check(fit_length_final, type = "stat", stat = "sd")
-mcmc_plot(fit_length_final, type = "trace")
-loo(fit_length_final)
 
 ## WEIGHT MODELS
 
