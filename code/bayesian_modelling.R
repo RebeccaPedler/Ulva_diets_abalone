@@ -320,8 +320,8 @@ cat("Subsampled dataset:", nrow(df_sub), "individuals across", nlevels(df_sub$ta
 
 # Run analysis on sub-sample dataset and for abalone length (mm) 
 
-icc_length <- brm(
-  formula = length_mm ~ 1 + (1 | tank),
+icc <- brm(
+  formula = log_weight ~ 1 + (1 | tank),
   data    = df_sub,
   family  = gaussian(),
   prior   = c(
@@ -337,18 +337,18 @@ icc_length <- brm(
   control = list(adapt_delta = 0.90)
 )
 
-summary(icc_length)
+summary(icc)
 
-var_components_len <- VarCorr(icc_length)
-print(var_components_len)
+var_components <- VarCorr(icc)
+print(var_components)
 
-draws_len   <- as_draws_df(icc_length)
+draws_len   <- as_draws_df(icc)
 sd_tank_len  <- draws_len$`sd_tank__Intercept`
 sd_resid_len <- draws_len$sigma
 
-icc_len <- sd_tank_len^2 / (sd_tank_len^2 + sd_resid_len^2)
+icc <- sd_tank^2 / (sd_tank^2 + sd_resid^2)
 
-mcmc_trace(icc_length,
+mcmc_trace(icc,
            pars = c("b_Intercept", "sd_tank__Intercept", "sigma"))
 
 # Summary table
