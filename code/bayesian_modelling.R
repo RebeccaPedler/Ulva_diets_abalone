@@ -17,8 +17,10 @@ library(scales)
 ### LOAD DATA
 
 setwd("C:/Users/RebeccaPedler/OneDrive - Yumbah/Documents/R&D/Industry PhD/Trials/Commercial trial/R_datasets")
-df_raw <- read.csv("individual_abalone_data.csv")
+df_raw     <- read.csv("individual_abalone_data.csv") # Abalone growth data
+df_counts  <- read.csv("per_feed_capita.csv") # Running mortality, tank counts, and feed per capita data
 str(df_raw)
+str(df_counts)
 
 # Filter out biologically implausible values (abalone below 10g or above 150g) 
 n_before <- nrow(df_raw)
@@ -35,7 +37,6 @@ cat(sprintf("  Removed %d rows (%d remaining)\n", n_removed, nrow(df)))
 
 # Make tank and diet factors
 df <- df |>
-  filter(diet != "wakame") |> 
     mutate(
     tank = factor(tank),
     diet = factor(diet, levels = c("control", "ulva", "wakame")),
@@ -55,7 +56,8 @@ print(missing_summary) # dataframe is empty
 # Create colour palette for plots
 diet_cols <- c(
   "control" = "#8DB4C8",   
-  "ulva"    = "#6DAA6E"
+  "ulva"    = "#6DAA6E",
+  "wakame"  = "#ABA300"
 )
 
 ### CLEAN DATA
@@ -238,7 +240,6 @@ tank_df <- df |>
   )
  
 # Print tank-level table
-cat("\n  Starting values per tank:\n")
 tank_df |>
   mutate(across(where(is.numeric), ~ round(.x, 3))) |>
   as.data.frame() |>
@@ -444,7 +445,7 @@ priors_logwt_wide <- c(
 # MODEL A1: Gaussian with default priors
 
 fit_length_default <- brm(
-  formula  = mean_length_mm ~ diet + start_ABW_z + per_capita_feed_z,
+  formula  = mean_length_mm ~ diet + per_capita_feed_z,
   data     = tank_df,
   family   = gaussian(),
   chains   = 4,
@@ -461,7 +462,7 @@ pp_check(fit_length_default)
 # MODEL A2: Gaussian with weakly informative priors
 
 fit_length_informative <- brm(
-  formula  = mean_length_mm ~ diet + start_ABW_z + per_capita_feed_z,
+  formula  = mean_length_mm ~ diet + per_capita_feed_z,
   data     = tank_df,
   family   = gaussian(),
   prior    = priors_length,
@@ -479,7 +480,7 @@ pp_check(fit_length_informative)
 # MODEL A3: Gaussian with less informative priors (wide normal distribution)
 
 fit_length_informative_wide <- brm(
-  formula  = mean_length_mm ~ diet + start_ABW_z + per_capita_feed_z,
+  formula  = mean_length_mm ~ diet + per_capita_feed_z,
   data     = tank_df,
   family   = gaussian(),
   prior   = priors_length_wide,
@@ -496,8 +497,8 @@ pp_check(fit_length_informative_wide)
 
 # MODEL A4: Sensitivity test (add mortality_p) - with weakly informative priors
 fit_length_sens <- brm(
-  formula  = mean_length_mm ~ diet + start_ABW_z + per_capita_feed_z + mortality_p_z,
-  data     = tank_df,
+  formula  = mean_length_mm ~ diet + per_capita_feed_z + mortality_p_z,
+  data     = tank_df
   family   = gaussian(),
   prior    = priors_length,         
   chains   = 4,
@@ -526,7 +527,7 @@ loo_compare(
 
 # Do additional sensitivity test for priors
 fit_prior_only <- brm(
-  formula = mean_log_weight ~ diet + start_ABW_z + per_capita_feed_z,
+  formula = mean_log_weight ~ diet + per_capita_feed_z,
   data    = tank_df,
   family  = gaussian(),
   prior   = priors_logwt_2cov,
@@ -541,7 +542,7 @@ pp_check(fit_prior_only) # Confirms that weakly informed prior improve fit
 ## Continue with model 2 as the final and with more iterations
 
 fit_length_final <- brm(
-  formula  = mean_length_mm ~ diet + start_ABW_z + per_capita_feed_z,
+  formula  = mean_length_mm ~ diet + per_capita_feed_z,
   data     = tank_df,
   family   = gaussian(),
   prior    = priors_length,
@@ -568,8 +569,8 @@ loo(fit_length_final)
 # MODEL B1: Gaussian with default priors
 
 fit_weight_default <- brm(
-  formula  = mean_log_weight ~ diet + start_ABW_z + per_capita_feed_z,
-  data     = tank_df,
+  formula  = mean_log_weight ~ diet + per_capita_feed_z,
+  data     = tank_df
   family   = gaussian(),
   chains   = 4,
   cores    = 4,
@@ -585,7 +586,7 @@ pp_check(fit_weight_default)
 # MODEL B2: Gaussian with weakly informative priors
 
 fit_weight_informative <- brm(
-  formula  = mean_log_weight ~ diet + start_ABW_z + per_capita_feed_z,
+  formula  = mean_log_weight ~ diet + per_capita_feed_z,
   data     = tank_df,
   family   = gaussian(),
   prior    = priors_logwt,
@@ -603,7 +604,7 @@ pp_check(fit_weight_informative)
 # MODEL B3: Gaussian with less informative priors (wide normal distribution)
 
 fit_weight_informative_wide <- brm(
-  formula  = mean_log_weight ~ diet + start_ABW_z + per_capita_feed_z,
+  formula  = mean_log_weight ~ diet + per_capita_feed_z,
   data     = tank_df,
   family   = gaussian(),
   prior    = priors_logwt_wide,
@@ -620,7 +621,7 @@ pp_check(fit_weight_informative_wide)
 
 # MODEL B4: Sensitivity test (add mortality_p) - with weakly informative priors
 fit_weight_sens <- brm(
-  formula  = mean_log_weight ~ diet + start_ABW_z + per_capita_feed_z + mortality_p_z,
+  formula  = mean_log_weight ~ diet + per_capita_feed_z + mortality_p_z,
   data     = tank_df,
   family   = gaussian(),
   prior    = priors_logwt,
@@ -655,7 +656,7 @@ loo_compare(
 ## Continue with model B2 as the final and with more iterations
 
 fit_weight_final <- brm(
-  formula  = mean_log_weight ~ diet + start_ABW_z + per_capita_feed_z, 
+  formula  = mean_log_weight ~ diet + per_capita_feed_z, 
   data     = tank_df,
   family   = gaussian(),
   prior    = priors_logwt,
@@ -693,7 +694,7 @@ loo_weight_final_mm
 
 # Do additional sensitivity test for priors
 fit_prior_only <- brm(
-  formula = mean_log_weight ~ diet + start_ABW_z + start_density_z,
+  formula = mean_log_weight ~ diet + per_capita_feed_z,
   data    = tank_df,
   family  = gaussian(),
   prior   = priors_logwt,
@@ -755,17 +756,51 @@ final_summary <- bind_rows(
 
 print(as.data.frame(final_summary), row.names = FALSE)
 
-## Sensitivity check - How much of mortality was driven by diet
+## Sensitivity check one - Does the diet effect hold with E04 and E13 removed
 
+# Create dataset with E04 and E13 removed
+sensitivity <- tank_df |>
+  filter(!tank %in% c("E04", "E13"))
 
+# Run model
+fit_weight_noinfl <- brm(
+  formula  = mean_log_weight ~ diet + per_capita_feed_z,
+  data     = sensitivity,
+  family   = gaussian(),
+  prior    = priors_logwt,
+  chains   = 4,
+  cores    = 4,
+  iter     = 4000,
+  warmup   = 2000,
+  seed     = 42,
+  control  = list(adapt_delta = 0.99, max_treedepth = 12)
+)
 
-### NEED TO DO THIS
+summary(fit_weight_noinfl)
+pp_check(fit_weight_noinfl)
+
+## Compare the diet effect: full model vs influential-tanks-removed
+post_full   <- as_draws_df(fit_weight_final)$b_dietulva
+post_noinfl <- as_draws_df(fit_weight_noinfl)$b_dietulva
+
+compare_tbl <- tibble(
+  model      = c("Full (8 tanks)", "Excl. E04 + E13 (6 tanks)"),
+  median_log = c(median(post_full),  median(post_noinfl)),
+  lower95    = c(quantile(post_full, .025),  quantile(post_noinfl, .025)),
+  upper95    = c(quantile(post_full, .975),  quantile(post_noinfl, .975)),
+  pct_median = c(100 * (exp(median(post_full))   - 1),
+                 100 * (exp(median(post_noinfl)) - 1)),
+  p_gt_0     = c(mean(post_full > 0), mean(post_noinfl > 0))
+) |>
+  mutate(across(where(is.numeric), ~ round(.x, 4)))
+
+print(as.data.frame(compare_tbl), row.names = FALSE)
 
 ### Next - economic break-even
 
 # Fit model for weight without correcting for feed availability
 fit_weight_informative_uncorrected <- brm(
-  formula  = mean_log_weight ~ diet + start_ABW_z,
+  formula  = mean_log_weight ~ diet
   data     = tank_df,
   family   = gaussian(),
   prior    = priors_logwt,
@@ -778,4 +813,3 @@ fit_weight_informative_uncorrected <- brm(
 )
 
 summary(fit_weight_informative_uncorrected)
-
