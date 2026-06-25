@@ -43,7 +43,7 @@ diet_cols <- c(
 missing_summary <- df_raw |>
   summarise(across(everything(), ~ sum(is.na(.)))) |>
   pivot_longer(everything(), names_to = "variable", values_to = "n_missing") |>
-  mutate(pct_missing = round(n_missing / nrow(df) * 100, 2)) |>
+  mutate(pct_missing = round(n_missing / nrow(df_raw) * 100, 2)) |>
   filter(n_missing > 0)
 
 print(missing_summary) # dataframe is empty
@@ -159,7 +159,7 @@ ggsave(here("Figures", "p_wt_box.png"), plot = p_wt_box, dpi = 300, width = 9, h
 ## Numerical summarry
 
 # Create table
-for ("weight_g") {
+for (v in c("weight_g")) {
   out <- df |>
     group_by(diet) |>
     summarise(
@@ -361,7 +361,6 @@ tank_df <- df |>
     start_biomass      = first(start_biomass),
     start_ABL          = first(start_ABL),
     start_count        = first(start_count),
-    per_capita_feed    = first(per_capita_feed),
     per_capita_feed    = first(per_capita_feed),
     mortality          = first(mortality_p),
     end_density        = first(end_density),
@@ -576,11 +575,11 @@ pp_check(fit_prior_only) # Confirms that weakly informed prior improve fit
 
 # Control weight
 ref_weight <- tank_df |>
-  filter(diet == "Control") |>
+  filter(diet == "control") |>
   summarise(ref = mean(exp(mean_log_weight), na.rm = TRUE)) |>
   pull(ref)
 
-b   <- as_draws_df(final_model_weight)$b_dietulva
+b <- as_draws_df(fit_weight_final)$b_dietulva
 pct <- exp(b) - 1                          # proportional effect (log weight)
 gms <- if (!is.na(ref_weight)) pct * ref_weight else NULL   # absolute grams gain
 
@@ -650,7 +649,7 @@ print(as.data.frame(compare_tbl), row.names = FALSE)
 
 # Fit model for weight without correcting for feed availability
 fit_weight_informative_uncorrected <- brm(
-  formula  = mean_log_weight ~ diet
+  formula  = mean_log_weight ~ diet,
   data     = tank_df,
   family   = gaussian(),
   prior    = priors_logwt,
