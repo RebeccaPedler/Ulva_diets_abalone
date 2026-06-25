@@ -384,7 +384,7 @@ tank_df <- tank_df |>
     end_density_z       = scale(end_density)[, 1], 
   )
 
-## CREATE PRIORS FOR ALL MODELS 
+## SET PRIORS  
  
 priors_logwt <- c(
   prior(student_t(3, 3.7, 1), class = Intercept),
@@ -469,12 +469,30 @@ fit_weight_sens <- brm(
 
 summary(fit_weight_sens)
 
+# MODEL B5: Sensitivity test (add start_ABW_z) - with weakly informative priors
+fit_weight_sens2 <- brm(
+  formula  = mean_log_weight ~ diet + per_capita_feed_z + start_ABW_z,
+  data     = tank_df,
+  family   = gaussian(),
+  prior    = priors_logwt,
+  chains   = 4,
+  cores    = 4,
+  iter     = 2000,
+  warmup   = 1000,
+  seed     = 42,
+  control  = list(adapt_delta = 0.95)
+)
+
+summary(fit_weight_sens2)
+
+
 # LEAVE-ONE-OUT COMPARISON
 
 fit_weight_default          <- add_criterion(fit_weight_default,          "loo", moment_match = TRUE)
 fit_weight_informative      <- add_criterion(fit_weight_informative,      "loo", moment_match = TRUE)
 fit_weight_informative_wide <- add_criterion(fit_weight_informative_wide, "loo", moment_match = TRUE)
 fit_weight_sens             <- add_criterion(fit_weight_sens,             "loo", moment_match = TRUE)
+fit_weight_sens2            <- add_criterion(fit_weight_sens2,             "loo", moment_match = TRUE)
 
 ## Inspect a single model's LOO (elpd_loo, p_loo, Pareto-k diagnostics)
 loo(fit_weight_sens)
@@ -485,6 +503,7 @@ loo_compare(
   fit_weight_informative,
   fit_weight_informative_wide,
   fit_weight_sens
+  fit_weight_sens2
 )
 
 ## Continue with model B2 as the final and with more iterations
