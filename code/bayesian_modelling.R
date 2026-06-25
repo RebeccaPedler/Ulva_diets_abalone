@@ -1,5 +1,5 @@
 ### Install packages
-install.packages(c("tidyverse","brms","ggplot2","patchwork","scales", "bayesplot","tidybayes","posterior","ggcorrplot", "ggpubr"))
+install.packages(c("tidyverse","brms","ggplot2","patchwork","scales", "bayesplot","tidybayes","posterior","ggcorrplot", "ggpubr", "here", "FSA"))
  
 library(tidyverse)
 library(brms)
@@ -11,17 +11,18 @@ library(ggpubr)
 library(ggcorrplot)
 library(posterior)
 library(scales)
+library(here)
+library(FSA)
 
 ### LOAD DATA
 
-setwd("C:/Users/RebeccaPedler/OneDrive - Yumbah/Documents/R&D/Industry PhD/Trials/Commercial trial/R_datasets")
-df_raw     <- read.csv("individual_abalone_data.csv") # Abalone growth data
-df_counts  <- read.csv("per_feed_capita.csv") # Running mortality, tank counts, and feed per capita data
+df_raw     <- read.csv(here("data", "individual_abalone_data.csv")) # Abalone growth data
+df_counts  <- read.csv(here("data","per_feed_capita.csv")) # Running mortality, tank counts, and feed per capita data
 str(df_raw)
 str(df_counts)
 
 # Make tank and diet factors
-df <- df_raw |>
+df_raw <- df_raw |>
     mutate(
     tank = factor(tank),
     diet = factor(diet, levels = c("control", "ulva", "wakame")),
@@ -60,7 +61,7 @@ df <- df_raw |>
 n_removed <- n_before - nrow(df)
 cat(sprintf("  Removed %d rows (%d remaining)\n", n_removed, nrow(df)))
 
-## Check sample sizes
+# Check sample sizes
 df |>
   count(diet, name = "n_individuals") |>
   as.data.frame() |>
@@ -72,59 +73,24 @@ df |>
   arrange(diet, tank) |>
   as.data.frame() |>
   print(row.names = FALSE)
- 
-## Detect outliers and generate numerical summarise
 
-# Detect outliers in length_mm only
-flag_outliers <- function(data, var) {
-  data |>
-    group_by(tank) |>
-    mutate(
-      tank_mean = mean(.data[[var]], na.rm = TRUE),
-      tank_sd   = sd(.data[[var]],   na.rm = TRUE),
-      z_within  = (.data[[var]] - tank_mean) / tank_sd,
-      outlier   = abs(z_within) > 3
-    ) |>
-    ungroup() |>
-    filter(outlier) |>
-    mutate(
-      direction = if_else(z_within < 0, "small", "large")
-    ) |>
-    dplyr::select(tank, diet, all_of(var), z_within, direction) |>
-    mutate(across(where(is.numeric), ~ round(.x, 3))) |>
-    arrange(z_within)
-}
+# Inspect outliers
+out_summary <- df |>
+  group_by(tank, diet) |>
+  mutate(
+    z_within = (weight_g - mean(weight_g, na.rm = TRUE)) /
+      sd(weight_g, na.rm = TRUE)
+  ) |>
+  summarise(
+    n = sum(!is.na(weight_g)),
+    n_outliers = sum(abs(z_within) > 3, na.rm = TRUE),
+    percentage_outliers = round((n_outliers / n) * 100, 2),
+    .groups = "drop"
+  )
 
-# Inspect for length_mm
-out <- flag_outliers(df, "length_mm")
-cat(sprintf("\n  Within-tank outliers (|z|>3) for length_mm: %d rows\n", nrow(out)))if (nrow(out) > 0) {
-  small <- filter(out, direction == "small")
-  large <- filter(out, direction == "large")
-  
-  if (nrow(small) > 0) {
-    cat(sprintf("    -- Small outliers (z < -3): %d rows\n", nrow(small)))
-    print(as.data.frame(small), row.names = FALSE)
-  }
-  if (nrow(large) > 0) {
-    cat(sprintf("    -- Large outliers (z >  3): %d rows\n", nrow(large)))
-    print(as.data.frame(large), row.names = FALSE)
-  }
-}
+print(out_summary)
 
-# Inspect for weight_g
-out <- flag_outliers(df, "weight_g")
-cat(sprintf("\n  Within-tank outliers (|z|>3) for weight_g: %d rows\n", nrow(out)))if (nrow(out) > 0) {
-  small <- filter(out, direction == "small")
-  large <- filter(out, direction == "large")
-  
-  if (nrow(small) > 0) {
-    cat(sprintf("    -- Small outliers (z < -3): %d rows\n", nrow(small)))
-    print(as.data.frame(small), row.names = FALSE)
-  }
-  if (nrow(large) > 0) {
-    cat(sprintf("    -- Large outliers (z >  3): %d rows\n", nrow(large)))
-    print(as.data.frame(large), row.names = FALSE)
-  }
+## Outliers relatively even accross tanks and groups - slightly higher in control tanks
 
 ### CREATE HISTOGRAMS
 
@@ -144,10 +110,12 @@ hist_diet <- function(var, xlab, binwidth = NULL) {
     labs(x = xlab, y = "Density") +
     theme_minimal(base_size = 11) +
     theme(
+      panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
+      axis.line.x = element_line(color = "black", linewidth = 0.6),
+      axis.line.y = element_line(color = "black", linewidth = 0.6),
       legend.position  = "right"
     )
-  p
 }
  
 # Function: boxplot by tank, coloured by diet
@@ -164,41 +132,34 @@ box_tank <- function(var, ylab) {
     labs(x = "Tank", y = ylab) +
     theme_minimal(base_size = 11) +
     theme(
+      panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
+      axis.line.x = element_line(color = "black", linewidth = 0.6),
+      axis.line.y = element_line(color = "black", linewidth = 0.6),
       legend.position  = "right"
     )
-}
- 
-# length (raw and log)
-# Raw
-p_len_hist <- hist_diet("length_mm", "Final shell length (mm)") + ggtitle("Shell length distribution by diet")
-p_len_hist
- 
-p_len_box  <- box_tank("length_mm", "Final shell length (mm)") + ggtitle("Shell length by tank (coloured by diet)")
-p_len_box
+} 
 
-# Log
-p_len_log_hist <- hist_diet("log_length", "log(length) (mm)") + ggtitle("log(length) distribution by diet")
-p_len_log_hist
-
-# weight (raw and log)
-p_wt_hist <- hist_diet("weight_g", "Final weight (g)") + ggtitle("Weight distribution by diet")
+# Print histograms for weight (raw and log)
+p_wt_hist <- hist_diet("weight_g", "Final weight (g)") 
 p_wt_hist
+
+ggsave(here("Figures", "p_wt_hist.png"), plot = p_wt_hist, dpi = 300, width = 9, height = 8, units = "in")
  
-p_wt_log_hist <- hist_diet("log_weight", "log(weight) (g)") + ggtitle("log(Weight) distribution by diet")
+p_wt_log_hist <- hist_diet("log_weight", "log(weight) (g)") 
 p_wt_log_hist
- 
-p_wt_box  <- box_tank("weight_g", "Final weight (g)") + ggtitle("Weight by tank (coloured by diet)")
+
+ggsave(here("Figures", "p_wt_log_hist.png"), plot = p_wt_log_hist, dpi = 300, width = 9, height = 8, units = "in")
+
+p_wt_box  <- box_tank("weight_g", "Final weight (g)") 
 p_wt_box
 
-## Numerical summaries
+ggsave(here("Figures", "p_wt_box.png"), plot = p_wt_box, dpi = 300, width = 9, height = 8, units = "in")
 
-# Define variables
-response_vars <- c("length_mm", "weight_g")
+## Numerical summarry
 
 # Create table
-for (v in response_vars) {
-  cat(sprintf("\n--- %s ---\n", v))
+for ("weight_g") {
   out <- df |>
     group_by(diet) |>
     summarise(
@@ -216,7 +177,7 @@ for (v in response_vars) {
   print(out, row.names = FALSE)
 }
 
-## CHECK ALL CONDITIONS
+### COMPARE TANK START AND END CONDITIONS
 
 # Collapse to one row per tank 
 tank_df <- df |>
@@ -264,17 +225,26 @@ for (v in start_vars) {
 # One-way ANOVA / Kruskal-Wallis to see if sig difference between any start values
 for (v in start_vars) {
   kt <- kruskal.test(reformulate("diet", v), data = tank_df)
-  cat(sprintf("  %-20s  chi² = %5.2f,  df = %d,  p = %.4f  %s\n",
+  cat(sprintf("\n%-20s  chi2 = %5.2f,  df = %d,  p = %.4f  %s\n",
               v,
-              kt$statistic,
-              kt$parameter,
+              as.numeric(kt$statistic),
+              as.integer(kt$parameter),
               kt$p.value,
               ifelse(kt$p.value < 0.05, "check", "")))
+  # Post-hoc pairwise comparisons if Kruskal-Wallis is significant
+  if (kt$p.value < 0.05) {
+    dt <- dunnTest(
+      reformulate("diet", v),
+      data = tank_df,
+      method = "bonferroni"
+    )
+    print(dt$res)
+  }
 }
 
-### CORRELATION BETWEEN MODERATORS
+## end_density and mortality significantly lower in wakame treatment compared to Ulva and control
 
-## Should include these as moderators in model, check collinearity between them
+### CORRELATION BETWEEN MODERATORS
 
 # Pearson correlation among moderators
 mod_mat <- tank_df |>
@@ -290,16 +260,27 @@ print(format(round(cor_p, 4)))
 # Correlation heatmap
 p_cor <- ggcorrplot(
   cor_r,
-  method    = "square",
-  type      = "lower",
-  lab       = TRUE,
-  lab_size  = 5,
-  colors    = c("#C0392B", "white", "#1F618D"),
-  title     = "Pearson correlation: tank-level moderators\n(n = 12 tanks)",
-  ggtheme   = theme_minimal(base_size = 13)
-)
+  method   = "square",
+  type     = "lower",
+  lab      = TRUE,
+  lab_size = 5,
+  colors   = c("#C0392B", "white", "#1F618D"),
+  title    = ""
+) +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line.x = element_line(color = "black", linewidth = 0.6),
+    axis.line.y = element_line(color = "black", linewidth = 0.6),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)
+  ) 
  
 print(p_cor)
+
+ggsave(here("Figures", "p_cor.png"), plot = p_cor, dpi = 300, width = 12, height = 6, units  = "in")
 
 ## start_ABL and start_ABW are correlated, so are start_biomass and density - This makes sense because they are calculated from each other. Proceed with one from each for modelling (start_ABW and density)
 ## end_density and mortality_p are also correlated - again makes sense - less abalone = less density within tanks
@@ -307,7 +288,7 @@ print(p_cor)
 
 ### BAYESION MODELLING
 
-## ICC estimates (to determine identify potential tank clustering and see if we can aggregate to tank level)
+## ICC estimates (to determine identify potential tank clustering and see if aggregating to tank level is supported)
 
 # Stratified subsample — 1,000 individuals per tank
 set.seed(42)
@@ -315,8 +296,6 @@ df_sub <- df |>
   group_by(tank) |>
   slice_sample(n = 1000) |>
   ungroup()
-
-cat("Subsampled dataset:", nrow(df_sub), "individuals across", nlevels(df_sub$tank), "tanks\n")
 
 # Run analysis on sub-sample dataset and for abalone length (mm) 
 
@@ -342,14 +321,13 @@ summary(icc)
 var_components <- VarCorr(icc)
 print(var_components)
 
-draws_len   <- as_draws_df(icc)
-sd_tank_len  <- draws_len$`sd_tank__Intercept`
-sd_resid_len <- draws_len$sigma
+draws      <- as_draws_df(icc)
+sd_tank    <- draws$`sd_tank__Intercept`
+sd_resid   <- draws$sigma
 
 icc <- sd_tank^2 / (sd_tank^2 + sd_resid^2)
 
-mcmc_trace(icc,
-           pars = c("b_Intercept", "sd_tank__Intercept", "sigma"))
+mcmc_trace(icc, pars = c("b_Intercept", "sd_tank__Intercept", "sigma"))
 
 # Summary table
 
