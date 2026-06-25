@@ -1,5 +1,5 @@
 ### Install packages
-install.packages(c("tidyverse","brms","ggplot2","patchwork","scales", "bayesplot","tidybayes","posterior","ggcorrplot", "ggpubr", "here", "FSA"))
+install.packages(c("tidyverse","brms","ggplot2","patchwork", "bayesplot","tidybayes","posterior","ggcorrplot", "here", "FSA"))
  
 library(tidyverse)
 library(brms)
@@ -7,10 +7,8 @@ library(ggplot2)
 library(patchwork)
 library(bayesplot)
 library(tidybayes)
-library(ggpubr)
 library(ggcorrplot)
 library(posterior)
-library(scales)
 library(here)
 library(FSA)
 
