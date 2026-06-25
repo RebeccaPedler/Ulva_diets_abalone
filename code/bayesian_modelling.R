@@ -327,7 +327,10 @@ sd_resid   <- draws$sigma
 
 icc <- sd_tank^2 / (sd_tank^2 + sd_resid^2)
 
-mcmc_trace(icc, pars = c("b_Intercept", "sd_tank__Intercept", "sigma"))
+icc_mcmc_trace <- mcmc_trace(icc_logweight,
+           pars = c("b_Intercept", "sd_tank__Intercept", "sigma"))
+
+ggsave(here("Figures", "icc_mcmc_trace.png"), plot = icc_mcmc_trace, dpi = 300, width = 12, height = 6, units  = "in")
 
 # Summary table
 
