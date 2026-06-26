@@ -1,3 +1,9 @@
+# Project: A probabilistic cost–benefit analysis of macroalgal dietary supplementation in commercial greenlip abalone (Haliotis laevigata) aquaculture
+
+## Step 1: Running Bayesion models
+
+## Load required packages
+
 ### Install packages
 install.packages(c("tidyverse","brms","ggplot2","patchwork", "bayesplot","tidybayes","posterior","ggcorrplot", "here", "FSA"))
  
@@ -718,3 +724,5 @@ fit_weight_informative_uncorrected <- brm(
 )
 
 summary(fit_weight_informative_uncorrected)
+
+ ### END OF SCRIPT ###
