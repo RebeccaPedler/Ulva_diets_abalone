@@ -604,6 +604,9 @@ final_summary_weight <- tibble(
 print(final_summary_weight)
 
 ## Sensitivity check one - Does the diet effect hold with E04 and E13 removed
+# E04 had highest start_ABW
+# E13 had the highest start count and lowest per_capita_feed
+# Check that Ulva effect is not driven by leverage of covariates
 
 # Create dataset with E04 and E13 removed
 sensitivity <- tank_df |>
@@ -643,6 +646,8 @@ compare_tbl <- tibble(
 
 print(as.data.frame(compare_tbl), row.names = FALSE)
 
+# Ulva effect unchanged - growth benefit holds up
+
 ## Additional sensitivity test 
 # Individual-level heirarchical model with tank random effect - does Ulva effect hold up?
 
@@ -666,10 +671,13 @@ summary(fit_hier)
 
 # Diagnostic checks 
 fit_hier_trace <- mcmc_trace(fit_hier, pars = c("b_dietulva", "b_dietwakame", "b_per_capita_feed_z", "sd_tank__Intercept", "sigma"))
-
-pp_check(fit_hier)
+ggsave(here("figures", "fit_hier_trace.png"), plot = fit_hier_trace, dpi = 300, width = 6, height = 5, units = "in")
  
-pp_check(fit_hier, type = "stat", stat = "mean")
+fit_hier <- pp_check(fit_hier)
+ggsave(here("figures", "fit_hier.png"), plot = fit_hier, dpi = 300, width = 6, height = 5, units = "in")
+
+fit_hier_mean <- pp_check(fit_hier, type = "stat", stat = "mean")
+ggsave(here("figures", "fit_hier_mean.png"), plot = fit_hier_mean, dpi = 300, width = 6, height = 5, units = "in")
 
 b_hier <- as_draws_df(fit_hier)$b_dietulva
 b_agg  <- as_draws_df(fit_weight_final)$b_dietulva
