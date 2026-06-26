@@ -15,7 +15,7 @@ library(FSA)
 ### LOAD DATA
 
 df_raw     <- read.csv(here("data", "individual_abalone_data.csv")) # Abalone growth data
-df_counts  <- read.csv(here("data","per_feed_capita.csv")) # Running mortality, tank counts, and feed per capita data
+df_counts  <- read.csv(here("data","per_capita_feed.csv")) # Running mortality, tank counts, and feed per capita data
 str(df_raw)
 str(df_counts)
 
@@ -32,7 +32,7 @@ df_raw <- df_raw |>
 diet_cols <- c(
   "control" = "#8DB4C8",   
   "ulva"    = "#6DAA6E",
-  "wakame"  = "#ABA300"
+  "wakame"  = "#C4845A"
 )
 
 ### CLEAN AND INSPECT DATA
@@ -142,17 +142,17 @@ box_tank <- function(var, ylab) {
 p_wt_hist <- hist_diet("weight_g", "Final weight (g)") 
 p_wt_hist
 
-ggsave(here("Figures", "p_wt_hist.png"), plot = p_wt_hist, dpi = 300, width = 9, height = 8, units = "in")
+ggsave(here("figures", "p_wt_hist.png"), plot = p_wt_hist, dpi = 300, width = 9, height = 8, units = "in")
  
 p_wt_log_hist <- hist_diet("log_weight", "log(weight) (g)") 
 p_wt_log_hist
 
-ggsave(here("Figures", "p_wt_log_hist.png"), plot = p_wt_log_hist, dpi = 300, width = 9, height = 8, units = "in")
+ggsave(here("figures", "p_wt_log_hist.png"), plot = p_wt_log_hist, dpi = 300, width = 9, height = 8, units = "in")
 
 p_wt_box  <- box_tank("weight_g", "Final weight (g)") 
 p_wt_box
 
-ggsave(here("Figures", "p_wt_box.png"), plot = p_wt_box, dpi = 300, width = 9, height = 8, units = "in")
+ggsave(here("figures", "p_wt_box.png"), plot = p_wt_box, dpi = 300, width = 9, height = 8, units = "in")
 
 ## Numerical summarry
 
@@ -278,7 +278,7 @@ p_cor <- ggcorrplot(
  
 print(p_cor)
 
-ggsave(here("Figures", "p_cor.png"), plot = p_cor, dpi = 300, width = 12, height = 6, units  = "in")
+ggsave(here("figures", "p_cor.png"), plot = p_cor, dpi = 300, width = 12, height = 6, units  = "in")
 
 ## start_ABL and start_ABW are correlated, so are start_biomass and density - This makes sense because they are calculated from each other. Proceed with one from each for modelling (start_ABW and density)
 ## end_density and mortality_p are also correlated - again makes sense - less abalone = less density within tanks
@@ -327,7 +327,7 @@ icc_logwt <- sd_tank_logwt^2 / (sd_tank_logwt^2 + sd_resid_logwt^2)
  
 icc_mcmc_trace <- mcmc_trace(icc_logweight, pars = c("b_Intercept", "sd_tank__Intercept", "sigma"))
 
-ggsave(here("Figures", "icc_mcmc_trace.png"), plot = icc_mcmc_trace, dpi = 300, width = 12, height = 6, units  = "in")
+ggsave(here("figures", "icc_mcmc_trace.png"), plot = icc_mcmc_trace, dpi = 300, width = 12, height = 6, units  = "in")
  
 # SUMMARY TABLE
  
@@ -502,10 +502,10 @@ loo_compare(
 
 # Results are robust accross sensitivity analyses and regardless of prior choice
 
-## Continue with model B2 as the final and with more iterations
+## Continue with model including start_ABW as the final and with more iterations
 
 fit_weight_final <- brm(
-  formula  = mean_log_weight ~ diet + per_capita_feed_z, 
+  formula  = mean_log_weight ~ diet + per_capita_feed_z + start_ABW_z, 
   data     = tank_df,
   family   = gaussian(),
   prior    = priors_logwt,
@@ -524,27 +524,27 @@ summary(fit_weight_final)
 # PP check - density overlay
 p_pp_density <- pp_check(fit_weight_final)
 p_pp_density
-ggsave(here("Figures", "pp_check_weight_density.png"), plot = p_pp_density, dpi = 300, width = 8, height = 6, units = "in")
+ggsave(here("figures", "pp_check_weight_density.png"), plot = p_pp_density, dpi = 300, width = 8, height = 6, units = "in")
 
 # PP check - mean 
 p_pp_mean <- pp_check(fit_weight_final, type = "stat", stat = "mean")
 p_pp_mean
-ggsave(here("Figures", "pp_check_weight_mean.png"), plot = p_pp_mean, dpi = 300, width = 6, height = 5, units = "in")
+ggsave(here("figures", "pp_check_weight_mean.png"), plot = p_pp_mean, dpi = 300, width = 6, height = 5, units = "in")
 
 # PP check - SD 
 p_pp_sd <- pp_check(fit_weight_final, type = "stat", stat = "sd")
 p_pp_sd
-ggsave(here("Figures", "pp_check_weight_sd.png"), plot = p_pp_sd, dpi = 300, width = 6, height = 5, units = "in")
+ggsave(here("figures", "pp_check_weight_sd.png"), plot = p_pp_sd, dpi = 300, width = 6, height = 5, units = "in")
 
 # Trace plots
 p_trace <- mcmc_plot(fit_weight_final, type = "trace")
 p_trace
-ggsave(here("Figures", "trace_weight_final.png"), plot = p_trace, dpi = 300, width = 12, height = 8, units = "in")
+ggsave(here("figures", "trace_weight_final.png"), plot = p_trace, dpi = 300, width = 12, height = 8, units = "in")
 
 # MCMC plots
 final_mcmc_trace <- mcmc_trace(fit_weight_final, pars = c("b_Intercept", "b_dietulva", "b_dietwakame", "b_per_capita_feed_z", "sigma"))
 final_mcmc_trace
-ggsave(here("Figures", "final_mcmc_trace.png"), plot = final_mcmc_trace, dpi = 300, width = 12, height = 8, units = "in")
+ggsave(here("figures", "final_mcmc_trace.png"), plot = final_mcmc_trace, dpi = 300, width = 12, height = 8, units = "in")
 
 # LOO summary
 loo_weight_final <- loo(fit_weight_final)
@@ -642,6 +642,56 @@ compare_tbl <- tibble(
   mutate(across(where(is.numeric), ~ round(.x, 4)))
 
 print(as.data.frame(compare_tbl), row.names = FALSE)
+
+## Additional sensitivity test 
+# Individual-level heirarchical model with tank random effect - does Ulva effect hold up?
+
+# Create dataframe with scaled per_capita_feed
+df_sub <- df_sub |>
+  mutate(per_capita_feed_z = scale(per_capita_feed)[, 1])
+
+# Run model 
+ fit_hier <- brm(
+  log_weight ~ diet + per_capita_feed_z + (1 | tank),
+  data    = df_sub,
+  family  = gaussian(),
+  prior   = priors_logwt,         
+  chains  = 4, cores = 4,
+  iter    = 4000, warmup = 2000,
+  seed    = 42,
+  control = list(adapt_delta = 0.95)
+)
+
+summary(fit_hier)
+
+# Diagnostic checks 
+fit_hier <- mcmc_trace(fit_hier, pars = c("b_dietulva", "b_dietwakame", "b_per_capita_feed_z", "sd_tank__Intercept", "sigma"))
+
+pp_check(fit_hier)
+ 
+pp_check(fit_hier, type = "stat", stat = "mean")
+
+b_hier <- as_draws_df(fit_hier)$b_dietulva
+b_agg  <- as_draws_df(fit_weight_final)$b_dietulva
+
+compare_hier <- tibble(
+  model      = c("Aggregated (tank means, n = 12)", "Hierarchical (individuals + 1|tank)"),
+  median_log = c(median(b_agg), median(b_hier)),
+  lower95    = c(quantile(b_agg, .025), quantile(b_hier, .025)),
+  upper95    = c(quantile(b_agg, .975), quantile(b_hier, .975)),
+  pct_median = c(100 * (exp(median(b_agg))  - 1), 100 * (exp(median(b_hier)) - 1)),
+  p_gt_0     = c(mean(b_agg > 0), mean(b_hier > 0))
+) |>
+  mutate(across(where(is.numeric), ~ round(.x, 4)))
+
+print(as.data.frame(compare_hier), row.names = FALSE)
+
+## Check if 10% tank variation from earlier ICC holds
+draws    <- as_draws_df(fit_hier)
+icc_hier <- draws$sd_tank__Intercept^2 / (draws$sd_tank__Intercept^2 + draws$sigma^2)
+c(median = median(icc_hier),
+  lower  = quantile(icc_hier, .025),
+  upper  = quantile(icc_hier, .975))
 
 ### ECONOMIC BREAK-EVEN
 
