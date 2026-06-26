@@ -665,7 +665,7 @@ df_sub <- df_sub |>
 summary(fit_hier)
 
 # Diagnostic checks 
-fit_hier <- mcmc_trace(fit_hier, pars = c("b_dietulva", "b_dietwakame", "b_per_capita_feed_z", "sd_tank__Intercept", "sigma"))
+fit_hier_trace <- mcmc_trace(fit_hier, pars = c("b_dietulva", "b_dietwakame", "b_per_capita_feed_z", "sd_tank__Intercept", "sigma"))
 
 pp_check(fit_hier)
  
