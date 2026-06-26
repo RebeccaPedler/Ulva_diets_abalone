@@ -1,3 +1,8 @@
+# Project: A probabilistic cost–benefit analysis of macroalgal dietary supplementation in commercial greenlip abalone (Haliotis laevigata) aquaculture
+
+## Step 2: Economic analysis
+
+## Load required packages
 
 ## Run model using both the unadjusted (no feed corerection) and corrected effect size
 
