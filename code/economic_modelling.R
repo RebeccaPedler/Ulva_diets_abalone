@@ -338,7 +338,6 @@ premium_df <- tibble(meal_price = meal_grid) |>
   )
 
 # Readable subset
-cat("\nDiet premium at selected Ulva meal prices:\n")
 premium_df |>
   filter(meal_price %in% seq(0, 60, by = 10)) |>
   mutate(across(where(is.numeric), ~ round(.x, 2))) |>
