@@ -707,22 +707,8 @@ c(median = median(icc_hier),
   lower  = quantile(icc_hier, .025),
   upper  = quantile(icc_hier, .975))
 
-### ECONOMIC BREAK-EVEN
+## NEXT: Run economic_modelling.R
 
-# Fit model for weight without correcting for feed availability
-fit_weight_informative_uncorrected <- brm(
-  formula  = mean_log_weight ~ diet,
-  data     = tank_df,
-  family   = gaussian(),
-  prior    = priors_logwt,
-  chains   = 4,
-  cores    = 4,
-  iter     = 4000,
-  warmup   = 2000,
-  seed     = 42,
-  control  = list(adapt_delta = 0.95)
-)
+### END OF SCRIPT ###
 
-summary(fit_weight_informative_uncorrected)
-
- ### END OF SCRIPT ###
+ 
