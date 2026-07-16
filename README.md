@@ -1,13 +1,8 @@
 # Ulva_diets_abalone
 
-# Does Ulva pay? A probabilistic cost–benefit analysis of macroalgal dietary supplementation in commercial greenlip abalone (*Haliotis laevigata*) aquaculture
+# Does Ulva pay? A probabilistic cost–benefit analysis of macroalgal dietary supplementation in farmed greenlip abalone (*Haliotis laevigata* Donovan) 
 
 **Manuscript in preparation**
-
-Rebecca Pedler<sup>1,2</sup>
-
-<sup>1</sup> College of Science and Engineering, Flinders University, Bedford Park, SA, Australia
-<sup>2</sup> Yumbah Aquaculture, Port Lincoln, SA, Australia
 
 ---
 
