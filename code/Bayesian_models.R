@@ -18,6 +18,14 @@ library(posterior)
 library(here)
 library(FSA)
 
+### MODEL FITTING CONTROL
+
+## Set refit = TRUE to refit all models from scratch and overwrite saved files
+## Set refit = FALSE to load previously fitted models from disk
+## Change to TRUE any time you modify model parameters or data
+
+refit <- TRUE
+
 ### LOAD DATA
 
 df_raw     <- read.csv(here("data", "individual_abalone_data.csv")) # Abalone growth data
@@ -303,22 +311,27 @@ df_sub <- df |>
 
 # Run analysis on sub-sample dataset and for abalone weight (g)
 
-icc_logweight <- brm(
-  formula = log_weight ~ 1 + (1 | tank),
-  data    = df_sub,
-  family  = gaussian(),
-  prior   = c(
-    prior(normal(3.7, 0.5),  class = Intercept),  # log scale: exp(3.7) ≈ 40 g
-    prior(exponential(1),    class = sd),
-    prior(exponential(1),    class = sigma)
-  ),
-  chains  = 4,
-  cores   = 4,
-  iter    = 2000,
-  warmup  = 1000,
-  seed    = 42,
-  control = list(adapt_delta = 0.90)
-)
+if (refit) {
+  icc_logweight <- brm(
+    formula = log_weight ~ 1 + (1 | tank),
+    data    = df_sub,
+    family  = gaussian(),
+    prior   = c(
+      prior(normal(3.7, 0.5),  class = Intercept),  # log scale: exp(3.7) ≈ 40 g
+      prior(exponential(1),    class = sd),
+      prior(exponential(1),    class = sigma)
+    ),
+    chains  = 4,
+    cores   = 4,
+    iter    = 2000,
+    warmup  = 1000,
+    seed    = 42,
+    control = list(adapt_delta = 0.90)
+  )
+  saveRDS(icc_logweight, here("models", "icc_logweight.rds"))
+} else {
+  icc_logweight <- readRDS(here("models", "icc_logweight.rds"))
+}
  
 summary(icc_logweight)
  
@@ -404,90 +417,122 @@ priors_logwt_wide <- c(
 
 # MODEL B1: Gaussian with default priors
 
-fit_weight_default <- brm(
-  formula  = mean_log_weight ~ diet + per_capita_feed_z,
-  data     = tank_df,
-  family   = gaussian(),
-  chains   = 4,
-  cores    = 4,
-  iter     = 2000,
-  warmup   = 1000,
-  seed     = 42,
-  control  = list(adapt_delta = 0.95)
-)
+if (refit) {
+  fit_weight_default <- brm(
+    formula  = mean_log_weight ~ diet + per_capita_feed_z,
+    data     = tank_df,
+    family   = gaussian(),
+    chains   = 4,
+    cores    = 4,
+    iter     = 2000,
+    warmup   = 1000,
+    seed     = 42,
+    control  = list(adapt_delta = 0.95)
+  )
+  saveRDS(fit_weight_default, here("models", "fit_weight_default.rds"))
+} else {
+  fit_weight_default <- readRDS(here("models", "fit_weight_default.rds"))
+}
 
 summary(fit_weight_default) 
-pp_check(fit_weight_default)
+p_pp_default <- pp_check(fit_weight_default)
+ggsave(here("figures", "pp_check_default.png"), plot = p_pp_default, dpi = 300, width = 8, height = 6, units = "in")
 
 # MODEL B2: Gaussian with weakly informative priors
 
-fit_weight_informative <- brm(
-  formula  = mean_log_weight ~ diet + per_capita_feed_z,
-  data     = tank_df,
-  family   = gaussian(),
-  prior    = priors_logwt,
-  chains   = 4,
-  cores    = 4,
-  iter     = 2000,
-  warmup   = 1000,
-  seed     = 42,
-  control  = list(adapt_delta = 0.95)
-)
+if (refit) {
+  fit_weight_informative <- brm(
+    formula  = mean_log_weight ~ diet + per_capita_feed_z,
+    data     = tank_df,
+    family   = gaussian(),
+    prior    = priors_logwt,
+    chains   = 4,
+    cores    = 4,
+    iter     = 2000,
+    warmup   = 1000,
+    seed     = 42,
+    control  = list(adapt_delta = 0.95)
+  )
+  saveRDS(fit_weight_informative, here("models", "fit_weight_informative.rds"))
+} else {
+  fit_weight_informative <- readRDS(here("models", "fit_weight_informative.rds"))
+}
 
 summary(fit_weight_informative)
-pp_check(fit_weight_informative)
+p_pp_informative <- pp_check(fit_weight_informative)
+ggsave(here("figures", "pp_check_informative.png"), plot = p_pp_informative, dpi = 300, width = 8, height = 6, units = "in")
 
 # MODEL B3: Gaussian with less informative priors (wide normal distribution)
 
-fit_weight_informative_wide <- brm(
-  formula  = mean_log_weight ~ diet + per_capita_feed_z,
-  data     = tank_df,
-  family   = gaussian(),
-  prior    = priors_logwt_wide,
-  chains   = 4,
-  cores    = 4,
-  iter     = 2000,
-  warmup   = 1000,
-  seed     = 42,
-  control  = list(adapt_delta = 0.95)
-)
+if (refit) {
+  fit_weight_informative_wide <- brm(
+    formula  = mean_log_weight ~ diet + per_capita_feed_z,
+    data     = tank_df,
+    family   = gaussian(),
+    prior    = priors_logwt_wide,
+    chains   = 4,
+    cores    = 4,
+    iter     = 2000,
+    warmup   = 1000,
+    seed     = 42,
+    control  = list(adapt_delta = 0.95)
+  )
+  saveRDS(fit_weight_informative_wide, here("models", "fit_weight_informative_wide.rds"))
+} else {
+  fit_weight_informative_wide <- readRDS(here("models", "fit_weight_informative_wide.rds"))
+}
 
 summary(fit_weight_informative_wide)
-pp_check(fit_weight_informative_wide)
+p_pp_informative_wide <- pp_check(fit_weight_informative_wide)
+ggsave(here("figures", "pp_check_informative_wide.png"), plot = p_pp_informative_wide, dpi = 300, width = 8, height = 6, units = "in")
 
 # MODEL B4: Sensitivity test (add mortality_p) - with weakly informative priors
-fit_weight_sens <- brm(
-  formula  = mean_log_weight ~ diet + per_capita_feed_z + mortality_z,
-  data     = tank_df,
-  family   = gaussian(),
-  prior    = priors_logwt,
-  chains   = 4,
-  cores    = 4,
-  iter     = 2000,
-  warmup   = 1000,
-  seed     = 42,
-  control  = list(adapt_delta = 0.95)
-)
+
+if (refit) {
+  fit_weight_sens <- brm(
+    formula  = mean_log_weight ~ diet + per_capita_feed_z + mortality_z,
+    data     = tank_df,
+    family   = gaussian(),
+    prior    = priors_logwt,
+    chains   = 4,
+    cores    = 4,
+    iter     = 2000,
+    warmup   = 1000,
+    seed     = 42,
+    control  = list(adapt_delta = 0.95)
+  )
+  saveRDS(fit_weight_sens, here("models", "fit_weight_sens.rds"))
+} else {
+  fit_weight_sens <- readRDS(here("models", "fit_weight_sens.rds"))
+}
 
 summary(fit_weight_sens)
-pp_check(fit_weight_sens)
+p_pp_sens <- pp_check(fit_weight_sens)
+ggsave(here("figures", "pp_check_sens.png"), plot = p_pp_sens, dpi = 300, width = 8, height = 6, units = "in")
 
 # MODEL B5: Sensitivity test (add start_ABW_z) - with weakly informative priors
-fit_weight_sens2 <- brm(
-  formula  = mean_log_weight ~ diet + per_capita_feed_z + start_ABW_z,
-  data     = tank_df,
-  family   = gaussian(),
-  prior    = priors_logwt,
-  chains   = 4,
-  cores    = 4,
-  iter     = 2000,
-  warmup   = 1000,
-  seed     = 42,
-  control  = list(adapt_delta = 0.95)
-)
+
+if (refit) {
+  fit_weight_sens2 <- brm(
+    formula  = mean_log_weight ~ diet + per_capita_feed_z + start_ABW_z,
+    data     = tank_df,
+    family   = gaussian(),
+    prior    = priors_logwt,
+    chains   = 4,
+    cores    = 4,
+    iter     = 2000,
+    warmup   = 1000,
+    seed     = 42,
+    control  = list(adapt_delta = 0.95)
+  )
+  saveRDS(fit_weight_sens2, here("models", "fit_weight_sens2.rds"))
+} else {
+  fit_weight_sens2 <- readRDS(here("models", "fit_weight_sens2.rds"))
+}
 
 summary(fit_weight_sens2)
-pp_check(fit_weight_sens2)
+p_pp_sens2 <- pp_check(fit_weight_sens2)
+ggsave(here("figures", "pp_check_sens2.png"), plot = p_pp_sens2, dpi = 300, width = 8, height = 6, units = "in")
 
 # LEAVE-ONE-OUT COMPARISON
 
@@ -510,18 +555,23 @@ loo_compare(
 
 ## Continue with model including start_ABW as the final and with more iterations
 
-fit_weight_final <- brm(
-  formula  = mean_log_weight ~ diet + per_capita_feed_z + start_ABW_z, 
-  data     = tank_df,
-  family   = gaussian(),
-  prior    = priors_logwt,
-  chains   = 4,
-  cores    = 4,
-  iter     = 4000,
-  warmup   = 2000,
-  seed     = 42,
-  control  = list(adapt_delta = 0.95)
-)
+if (refit) {
+  fit_weight_final <- brm(
+    formula  = mean_log_weight ~ diet + per_capita_feed_z + start_ABW_z, 
+    data     = tank_df,
+    family   = gaussian(),
+    prior    = priors_logwt,
+    chains   = 4,
+    cores    = 4,
+    iter     = 4000,
+    warmup   = 2000,
+    seed     = 42,
+    control  = list(adapt_delta = 0.95)
+  )
+  saveRDS(fit_weight_final, here("models", "fit_weight_final.rds"))
+} else {
+  fit_weight_final <- readRDS(here("models", "fit_weight_final.rds"))
+}
 
 summary(fit_weight_final)
 
@@ -562,18 +612,26 @@ pareto_k
 which(pareto_k > 0.7)
 
 # Do additional sensitivity test for priors
-fit_prior_only <- brm(
-  formula = mean_log_weight ~ diet + per_capita_feed_z,
-  data    = tank_df,
-  family  = gaussian(),
-  prior   = priors_logwt,
-  sample_prior = "only",
-  chains  = 4, 
-  cores = 4, 
-  iter = 2000, 
-  seed = 42
-)
-pp_check(fit_prior_only) # Confirms that weakly informed prior improve fit
+
+if (refit) {
+  fit_prior_only <- brm(
+    formula = mean_log_weight ~ diet + per_capita_feed_z,
+    data    = tank_df,
+    family  = gaussian(),
+    prior   = priors_logwt,
+    sample_prior = "only",
+    chains  = 4, 
+    cores = 4, 
+    iter = 2000, 
+    seed = 42
+  )
+  saveRDS(fit_prior_only, here("models", "fit_prior_only.rds"))
+} else {
+  fit_prior_only <- readRDS(here("models", "fit_prior_only.rds"))
+}
+
+p_pp_prior_only <- pp_check(fit_prior_only) # Confirms that weakly informed prior improve fit
+ggsave(here("figures", "pp_check_prior_only.png"), plot = p_pp_prior_only, dpi = 300, width = 8, height = 6, units = "in")
 
 ### SUMMARY TABLE
 
@@ -619,21 +677,28 @@ sensitivity <- tank_df |>
   filter(!tank %in% c("E04", "E13"))
 
 # Run model
-fit_weight_noinfl <- brm(
-  formula  = mean_log_weight ~ diet + per_capita_feed_z,
-  data     = sensitivity,
-  family   = gaussian(),
-  prior    = priors_logwt,
-  chains   = 4,
-  cores    = 4,
-  iter     = 4000,
-  warmup   = 2000,
-  seed     = 42,
-  control  = list(adapt_delta = 0.99, max_treedepth = 12)
-)
+
+if (refit) {
+  fit_weight_noinfl <- brm(
+    formula  = mean_log_weight ~ diet + per_capita_feed_z,
+    data     = sensitivity,
+    family   = gaussian(),
+    prior    = priors_logwt,
+    chains   = 4,
+    cores    = 4,
+    iter     = 4000,
+    warmup   = 2000,
+    seed     = 42,
+    control  = list(adapt_delta = 0.99, max_treedepth = 12)
+  )
+  saveRDS(fit_weight_noinfl, here("models", "fit_weight_noinfl.rds"))
+} else {
+  fit_weight_noinfl <- readRDS(here("models", "fit_weight_noinfl.rds"))
+}
 
 summary(fit_weight_noinfl)
-pp_check(fit_weight_noinfl)
+p_pp_noinfl <- pp_check(fit_weight_noinfl)
+ggsave(here("figures", "pp_check_noinfl.png"), plot = p_pp_noinfl, dpi = 300, width = 8, height = 6, units = "in")
 
 ## Compare the diet effect: full model vs influential-tanks-removed
 post_full   <- as_draws_df(fit_weight_final)$b_dietulva
@@ -662,16 +727,22 @@ df_sub <- df_sub |>
   mutate(per_capita_feed_z = scale(per_capita_feed)[, 1])
 
 # Run model 
- fit_hier <- brm(
-  log_weight ~ diet + per_capita_feed_z + (1 | tank),
-  data    = df_sub,
-  family  = gaussian(),
-  prior   = priors_logwt,         
-  chains  = 4, cores = 4,
-  iter    = 4000, warmup = 2000,
-  seed    = 42,
-  control = list(adapt_delta = 0.95)
-)
+
+if (refit) {
+  fit_hier <- brm(
+    log_weight ~ diet + per_capita_feed_z + (1 | tank),
+    data    = df_sub,
+    family  = gaussian(),
+    prior   = priors_logwt,         
+    chains  = 4, cores = 4,
+    iter    = 4000, warmup = 2000,
+    seed    = 42,
+    control = list(adapt_delta = 0.95)
+  )
+  saveRDS(fit_hier, here("models", "fit_hier.rds"))
+} else {
+  fit_hier <- readRDS(here("models", "fit_hier.rds"))
+}
 
 summary(fit_hier)
 
@@ -679,8 +750,8 @@ summary(fit_hier)
 fit_hier_trace <- mcmc_trace(fit_hier, pars = c("b_dietulva", "b_dietwakame", "b_per_capita_feed_z", "sd_tank__Intercept", "sigma"))
 ggsave(here("figures", "fit_hier_trace.png"), plot = fit_hier_trace, dpi = 300, width = 6, height = 5, units = "in")
  
-fit_hier <- pp_check(fit_hier)
-ggsave(here("figures", "fit_hier.png"), plot = fit_hier, dpi = 300, width = 6, height = 5, units = "in")
+fit_hier_ppcheck <- pp_check(fit_hier)
+ggsave(here("figures", "fit_hier.png"), plot = fit_hier_ppcheck, dpi = 300, width = 6, height = 5, units = "in")
 
 fit_hier_mean <- pp_check(fit_hier, type = "stat", stat = "mean")
 ggsave(here("figures", "fit_hier_mean.png"), plot = fit_hier_mean, dpi = 300, width = 6, height = 5, units = "in")
@@ -710,5 +781,4 @@ c(median = median(icc_hier),
 ## NEXT: Run economic_modelling.R
 
 ### END OF SCRIPT ###
-
  
