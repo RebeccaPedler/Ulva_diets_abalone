@@ -324,25 +324,28 @@ p_breakeven <- ggplot(curve_df,
            hjust = 0, size = 3, colour = "#993C1D") +
   scale_colour_manual(
     values = model_cols,
-    name   = "Growth model",
     labels = c("unadjusted" = "Unadjusted (optimistic ceiling)",
-               "adjusted"   = "Adjusted: feed + start weight (primary)")
+               "adjusted"   = "Adjusted: feed + start weight")
   ) +
   scale_linetype_manual(
     values = c("unadjusted" = "solid", "adjusted" = "dashed"),
-    name   = "Growth model",
     labels = c("unadjusted" = "Unadjusted (optimistic ceiling)",
-               "adjusted"   = "Adjusted: feed + start weight (primary)")
+               "adjusted"   = "Adjusted: feed + start weight")
   ) +
   scale_y_continuous(labels = percent_format(), limits = c(0, 1)) +
   scale_x_continuous(labels = dollar_format()) +
   labs(
     x        = "Ulva meal price ($/kg)",
-    y        = "P(Ulva profitable)",
-    title    = "Probability that Ulva supplementation is profitable vs Ulva meal price",
-    subtitle = "Per-animal break-even; full posterior propagated; mortality and farm-scale effects excluded"
+    y        = "P(Ulva profitable)"
   ) +
-  theme_ulva()
+  theme_ulva() +
+  theme(
+    legend.position     = c(0.98, 0.98),
+    legend.justification = c("right", "top"),
+    legend.background   = element_rect(fill = "white", colour = "grey85",
+                                       linewidth = 0.3),
+    legend.margin       = margin(4, 6, 4, 6)
+  )
 
 print(p_breakeven)
 ggsave(here("figures", "p_breakeven.png"),
@@ -351,7 +354,7 @@ ggsave(here("figures", "p_breakeven.png"),
 
 ### PART B: DIET PREMIUM AS A FUNCTION OF ULVA MEAL PRICE
 
-## Question: Hoe does diet premium scale with price of raw Ulva meal?
+## Question: How does diet premium scale with price of raw Ulva meal?
 
 premium_from_meal <- function(meal_price) {
   ulva_inclusion * (meal_price - displaced_cost)
@@ -406,50 +409,50 @@ ggsave(here("figures", "p_premium.png"),
 
 ## Functions
 
-## Ulva final weight per posterior draw, projected from W0_ref
+# Ulva final weight per posterior draw, projected from W0_ref
 ulva_Wf <- function(b) ctrl_Wf * exp(b)
 
-## Ulva SGR per draw
+# Ulva SGR per draw
 ulva_sgr <- function(b) (log(ulva_Wf(b)) - log(W0_ref)) / DAYS
 
-## Days for Ulva to reach target per draw
+# Days for Ulva to reach target per draw
 days_ulva <- function(b) log(TARGET_G / W0_ref) / ulva_sgr(b)
 
-## Days saved relative to control per draw
+# Days saved relative to control per draw
 days_saved <- function(b) days_ctrl - days_ulva(b)
 
-## Cumulative feed to reach target (kg) for a given SGR
+# Cumulative feed to reach target (kg) for a given SGR
 feed_to_target_kg <- function(sgr_val) {
   FEED_RATE * (TARGET_G - W0_ref) / 1000 / sgr_val
 }
 
-## Ulva diet price as a linear function of Ulva meal price (fixed inclusion)
+# Ulva diet price as a linear function of Ulva meal price (fixed inclusion)
 ulva_diet_from_meal <- function(meal_price) {
   ctrl_diet_price + ulva_inclusion * (meal_price - displaced_cost)
 }
 
-## Feed cost to reach target for a given SGR and diet price
+# Feed cost to reach target for a given SGR and diet price
 feed_cost <- function(sgr_val, diet_price) {
   feed_to_target_kg(sgr_val) * diet_price
 }
 
-## Net feed cost saving = control cost - Ulva cost (negative = Ulva costs more)
+# Net feed cost saving = control cost - Ulva cost (negative = Ulva costs more)
 feed_saving <- function(b, meal_price) {
   dp <- ulva_diet_from_meal(meal_price)
   feed_cost(ctrl_sgr, ctrl_diet_price) - feed_cost(ulva_sgr(b), dp)
 }
 
-## Break-even Ulva diet price: diet price at which feed saving = 0
+# Break-even Ulva diet price: diet price at which feed saving = 0
 be_diet_price <- function(b) {
   feed_cost(ctrl_sgr, ctrl_diet_price) / feed_to_target_kg(ulva_sgr(b))
 }
 
-## Break-even Ulva meal price: backed out from the diet price break-even
+# Break-even Ulva meal price: backed out from the diet price break-even
 be_meal_price <- function(b) {
   displaced_cost + (be_diet_price(b) - ctrl_diet_price) / ulva_inclusion
 }
 
-## Summary table
+# Summary table
 feed_cost_ctrl <- feed_cost(ctrl_sgr, ctrl_diet_price)
 
 summarise_sgr_economics <- function(b, label) {
@@ -525,7 +528,7 @@ saving_curve_df <- bind_rows(
   prob_saving_curve(b_adjusted,   "adjusted")
 )
 
-## Highest meal price where P still meets threshold
+# Highest meal price where P still meets threshold
 thresh <- saving_curve_df |>
   group_by(model) |>
   summarise(
