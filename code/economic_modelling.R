@@ -96,15 +96,19 @@ tank_df |>
 farmgate_price  <- 25.00   # $/kg whole abalone at farmgate
 ulva_diet_price <-  3.78   # $/kg finished Ulva diet
 ctrl_diet_price <-  2.47   # $/kg finished control diet
-ulva_meal_price <-  8.22   # $/kg Ulva meal 
+ulva_meal_price <-  8.22   # $/kg Ulva meal (the key negotiable lever)
 ulva_inclusion  <-  0.20   # Ulva meal inclusion rate (20%)
-TARGET_G        <- 80.0    # target harvest weight for SGR analysis 
+TARGET_G        <- 80.0    # target harvest weight for SGR analysis (g, whole animal)
 DAYS            <- 131     # trial duration (days)
+FEED_RATE       <- 0.01    # assumed feed rate for SGR analysis (1% BW/day;
+                           # cancels algebraically in net cost comparisons)
 
 ## Diet premium: extra cost per kg of feed to use the Ulva diet
 diet_premium <- ulva_diet_price - ctrl_diet_price   # $1.31/kg
 
-## Back out the cost of the ingredient Ulva meal displaces
+## Back out the cost of the ingredient Ulva meal displaces.
+## diet_premium = inclusion × (meal_price − displaced_cost)
+## → displaced_cost = meal_price − diet_premium / inclusion
 displaced_cost <- ulva_meal_price - diet_premium / ulva_inclusion
 
 cat(sprintf("\n  Diet premium at current prices:    $%.2f/kg feed\n", diet_premium))
@@ -367,7 +371,6 @@ premium_df <- tibble(meal_price = meal_grid_fw) |>
   )
 
 # Readable subset
-cat("\nDiet premium at selected Ulva meal prices:\n")
 premium_df |>
   filter(meal_price %in% seq(0, 60, by = 10)) |>
   mutate(across(where(is.numeric), ~ round(.x, 2))) |>
@@ -479,7 +482,7 @@ sgr_summary <- bind_rows(
   summarise_sgr_economics(b_adjusted,   "adjusted")
 )
 
-cat("\nPART C — SGR-BASED ECONOMIC SUMMARY AT ACTUAL ULVA MEAL PRICE ($8.22/kg):\n")
+# PART C — SGR-BASED ECONOMIC SUMMARY AT ACTUAL ULVA MEAL PRICE ($8.22/kg):\n")
 print(as.data.frame(sgr_summary), row.names = FALSE)
 
 cat(sprintf("\n  Control feed cost to %.0fg:   $%.4f/animal\n", TARGET_G, feed_cost_ctrl))
@@ -526,12 +529,17 @@ saving_curve_df <- bind_rows(
 thresh <- saving_curve_df |>
   group_by(model) |>
   summarise(
-    price_above_95 = max(meal_price[p_saving_pos >= 0.95], default = NA),
-    price_above_50 = max(meal_price[p_saving_pos >= 0.50], default = NA),
+    price_above_95 = {
+      vals <- meal_price[p_saving_pos >= 0.95]
+      if (length(vals) == 0) NA_real_ else max(vals)
+    },
+    price_above_50 = {
+      vals <- meal_price[p_saving_pos >= 0.50]
+      if (length(vals) == 0) NA_real_ else max(vals)
+    },
     .groups = "drop"
   )
 
-cat("Threshold crossings — meal price at which P(saving > 0) drops below:\n")
 print(as.data.frame(thresh), row.names = FALSE)
 
 p_saving_curve <- ggplot(saving_curve_df,
@@ -545,38 +553,38 @@ p_saving_curve <- ggplot(saving_curve_df,
              colour = "grey70", linewidth = 0.3, linetype = "dotted") +
   geom_line(linewidth = 1) +
   annotate("text",
-           x = ulva_meal_price + 0.3, y = 0.08,
-           label = sprintf("Actual meal\nprice $%.2f/kg", ulva_meal_price),
-           hjust = 0, size = 3, colour = "#993C1D") +
-  annotate("text",
-           x = 0.2, y = 0.97,
-           label = "P = 0.95", hjust = 0, size = 2.8, colour = "grey50") +
-  annotate("text",
-           x = 0.2, y = 0.52,
-           label = "P = 0.50", hjust = 0, size = 2.8, colour = "grey50") +
+           x      = ulva_meal_price,
+           y      = 0.12,
+           label  = sprintf("Actual meal\nprice $%.2f/kg", ulva_meal_price),
+           hjust  = -1,
+           vjust  = 0,
+           size   = 3,
+           colour = "#993C1D") +
   scale_colour_manual(
     values = model_cols,
-    name   = "Growth model",
     labels = c("unadjusted" = "Unadjusted (optimistic ceiling)",
-               "adjusted"   = "Adjusted: feed + start weight (primary)")
+               "adjusted"   = "Adjusted: feed + start weight")
   ) +
   scale_linetype_manual(
     values = c("unadjusted" = "solid", "adjusted" = "dashed"),
-    name   = "Growth model",
     labels = c("unadjusted" = "Unadjusted (optimistic ceiling)",
-               "adjusted"   = "Adjusted: feed + start weight (primary)")
+               "adjusted"   = "Adjusted: feed + start weight")
   ) +
   scale_x_continuous(labels = dollar_format(), breaks = seq(0, 20, 2)) +
   scale_y_continuous(labels = percent_format(), limits = c(0, 1)) +
   labs(
-    x        = "Ulva meal price ($/kg)",
-    y        = "P(feed cost saving > 0)",
-    title    = "Probability of a positive feed cost saving vs Ulva meal price",
-    subtitle = sprintf(
-      "Target %.0fg from %.2fg start; 20%% inclusion; full posterior propagated",
-      TARGET_G, W0_ref)
+    x     = "Ulva meal price ($/kg)",
+    y     = "P(feed cost saving > 0)",
+    title = ""
   ) +
-  theme_ulva()
+  theme_ulva() +
+  theme(
+    legend.position     = c(0.98, 0.98),
+    legend.justification = c("right", "top"),
+    legend.background   = element_rect(fill = "white", colour = "grey85",
+                                       linewidth = 0.3),
+    legend.margin       = margin(4, 6, 4, 6)
+  )
 
 print(p_saving_curve)
 ggsave(here("figures", "p_sgr_saving_by_meal_price.png"),
@@ -605,23 +613,17 @@ p_days <- ggplot(days_df, aes(x = days_saved, fill = model, colour = model)) +
   ) +
   scale_fill_manual(
     values = model_cols,
-    name   = "Growth model",
     labels = c("unadjusted" = "Unadjusted (optimistic ceiling)",
-               "adjusted"   = "Adjusted: feed + start weight (primary)")
+               "adjusted"   = "Adjusted: feed + start weight")
   ) +
   scale_colour_manual(
     values = model_cols,
-    name   = "Growth model",
     labels = c("unadjusted" = "Unadjusted (optimistic ceiling)",
-               "adjusted"   = "Adjusted: feed + start weight (primary)")
+               "adjusted"   = "Adjusted: feed + start weight")
   ) +
   labs(
-    x        = sprintf("Days saved to reach %.0fg (control \u2212 Ulva)", TARGET_G),
-    y        = "Density",
-    title    = "Posterior distribution of time-to-harvest saving",
-    subtitle = sprintf(
-      "From common start weight %.2fg; dashed lines show posterior medians",
-      W0_ref)
+    x        = sprintf("Days saved to reach %.0fg harvest weight", TARGET_G),
+    y        = "Density"
   ) +
   theme_ulva()
 
@@ -637,4 +639,4 @@ write.csv(premium_df,      here("outputs", "ulva_premium_curve.csv"),           
 write.csv(sgr_summary,     here("outputs", "ulva_sgr_economic_summary.csv"),     row.names = FALSE)
 write.csv(saving_curve_df, here("outputs", "ulva_sgr_saving_curve.csv"),         row.names = FALSE)
 
-cat("\nOutputs written to outputs/\n")
+### END OF SCRIPT ###
