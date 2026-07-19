@@ -16,6 +16,8 @@ library(tidyverse)
 library(brms)
 library(here)
 library(scales)   
+library(ggtext)
+library(ggplot2)
 
 ### CREATE THEMES
 
@@ -393,13 +395,12 @@ p_premium <- ggplot(premium_df, aes(x = meal_price, y = diet_premium)) +
   scale_x_continuous(labels = dollar_format()) +
   scale_y_continuous(labels = dollar_format()) +
   labs(
-    x        = "Ulva meal price ($/kg)",
-    y        = "Diet premium over control ($/kg feed)",
-    title    = "Diet premium as a function of Ulva meal price",
-    subtitle = sprintf("%.0f%% inclusion: $%.2f premium per $1/kg rise in meal price",
-                       ulva_inclusion * 100, premium_per_dollar)
+    x        = "*Ulva* meal price ($/kg)",
+    y        = "Diet premium over control ($/kg feed)"
   ) +
-  theme_ulva()
+  theme_ulva() +
+    theme(
+    axis.title.x = ggtext::element_markdown())
 
 print(p_premium)
 ggsave(here("figures", "p_premium.png"),
@@ -641,5 +642,4 @@ write.csv(curve_df,        here("outputs", "ulva_breakeven_curve.csv"),         
 write.csv(premium_df,      here("outputs", "ulva_premium_curve.csv"),            row.names = FALSE)
 write.csv(sgr_summary,     here("outputs", "ulva_sgr_economic_summary.csv"),     row.names = FALSE)
 write.csv(saving_curve_df, here("outputs", "ulva_sgr_saving_curve.csv"),         row.names = FALSE)
-
 ### END OF SCRIPT ###
