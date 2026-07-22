@@ -45,7 +45,7 @@ df_raw <- df_raw |>
   )
 
 # Filter biologically implausible values (segmentation artefacts)
-df <- df_raw |>
+df_econ <- df_raw |>
   filter(
     weight_g >= 10,
     weight_g <= 150
