@@ -2,14 +2,6 @@
 
 ## Step 2: Economic analysis
 
-### MODEL FITTING CONTROL
-
-## Set refit = TRUE to refit all models from scratch and overwrite saved files
-## Set refit = FALSE to load previously fitted models from disk
-## Change to TRUE any time you modify model parameters or data
-
-refit <- TRUE
-
 ### LOAD PACKAGES
 
 library(tidyverse)
@@ -53,7 +45,7 @@ df_raw <- df_raw |>
   )
 
 # Filter biologically implausible values (segmentation artefacts)
-df <- df_raw |>
+df_econ <- df_raw |>
   filter(
     weight_g >= 10,
     weight_g <= 150
@@ -61,11 +53,6 @@ df <- df_raw |>
 
 cat(sprintf("Rows removed by filter: %d (%d remaining)\n",
             nrow(df_raw) - nrow(df), nrow(df)))
-
-# Subset to control and ulva only — wakame excluded from economic analysis
-df_econ <- df |>
-  filter(diet %in% c("control", "ulva")) |>
-  mutate(diet = droplevels(diet))
 
 ### TANK-LEVEL AGGREGATION
 
@@ -118,67 +105,16 @@ cat(sprintf("  Implied displaced ingredient cost: $%.2f/kg meal\n", displaced_co
 
 ### BAYESIAN MODELS
 
-# set priors
-priors_logwt <- c(
-  prior(student_t(3, 3.7, 1), class = Intercept),
-  prior(normal(0, 1),         class = b),
-  prior(exponential(1),       class = sigma)
-)
-
-refit <- FALSE
-
-## MODEL 1: UNADJUSTED — diet only (optimistic ceiling)
-
-## Intentionally omits feed and starting size so the full observed weight difference is attributed to diet. 
-
-if (refit) {
-  fit_unadjusted <- brm(
-    formula = mean_log_weight ~ diet,
-    data    = tank_df,
-    family  = gaussian(),
-    prior   = priors_logwt,
-    chains  = 4,
-    cores   = 4,
-    iter    = 4000,
-    warmup  = 2000,
-    seed    = 42,
-    control = list(adapt_delta = 0.95)
-  )
-  saveRDS(fit_unadjusted, here("models", "fit_unadjusted.rds"))
-} else {
-  fit_unadjusted <- readRDS(here("models", "fit_unadjusted.rds"))
-}
-
+## MODEL 1: UNADJUSTED — diet + scaled start weight only 
+# This is the optimistic ceiling and simulates potential benefit if feed rates were targeted by biomass
+fit_unadjusted <- readRDS(here("models", "fit_weight_final_unadjusted.rds"))
 summary(fit_unadjusted)
-p_pp_unadjusted <- pp_check(fit_unadjusted)
-ggsave(here("figures", "pp_check_unadjusted.png"), plot = p_pp_unadjusted, dpi = 300, width = 8, height = 6, units = "in")
 
 ## MODEL 2: ADJUSTED — diet + per_capita_feed_z + start_ABW_z (primary)
-
-## This is the final model from Bayesian_models.R.
-## Adjusting for per-capita feed removes the feed-availability confound (Ulva tanks received more feed). Adjusting for start_ABW removes the baseline-size imbalance 
-
-if (refit) {
-  fit_adjusted <- brm(
-    formula = mean_log_weight ~ diet + per_capita_feed_z + start_ABW_z,
-    data    = tank_df,
-    family  = gaussian(),
-    prior   = priors_logwt,
-    chains  = 4,
-    cores   = 4,
-    iter    = 4000,
-    warmup  = 2000,
-    seed    = 42,
-    control = list(adapt_delta = 0.95)
-  )
-  saveRDS(fit_adjusted, here("models", "fit_adjusted.rds"))
-} else {
-  fit_adjusted <- readRDS(here("models", "fit_adjusted.rds"))
-}
-
+# Adjusting for per-capita feed removes the feed-availability confound (Ulva tanks received more feed)
+# Adjusting for start_ABW removes the baseline-size imbalance 
+fit_adjusted <- readRDS(here("models", "fit_weight_final.rds"))
 summary(fit_adjusted)
-p_pp_adjusted <- pp_check(fit_adjusted)
-ggsave(here("figures", "pp_check_adjusted.png"), plot = p_pp_adjusted, dpi = 300, width = 8, height = 6, units = "in")
 
 ### EXTRACT POSTERIORS
 
@@ -642,4 +578,5 @@ write.csv(curve_df,        here("outputs", "ulva_breakeven_curve.csv"),         
 write.csv(premium_df,      here("outputs", "ulva_premium_curve.csv"),            row.names = FALSE)
 write.csv(sgr_summary,     here("outputs", "ulva_sgr_economic_summary.csv"),     row.names = FALSE)
 write.csv(saving_curve_df, here("outputs", "ulva_sgr_saving_curve.csv"),         row.names = FALSE)
+
 ### END OF SCRIPT ###
