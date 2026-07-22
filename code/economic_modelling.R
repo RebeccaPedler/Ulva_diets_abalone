@@ -642,4 +642,5 @@ write.csv(curve_df,        here("outputs", "ulva_breakeven_curve.csv"),         
 write.csv(premium_df,      here("outputs", "ulva_premium_curve.csv"),            row.names = FALSE)
 write.csv(sgr_summary,     here("outputs", "ulva_sgr_economic_summary.csv"),     row.names = FALSE)
 write.csv(saving_curve_df, here("outputs", "ulva_sgr_saving_curve.csv"),         row.names = FALSE)
+
 ### END OF SCRIPT ###
