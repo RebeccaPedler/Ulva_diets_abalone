@@ -52,7 +52,7 @@ df_econ <- df_raw |>
   )
 
 cat(sprintf("Rows removed by filter: %d (%d remaining)\n",
-            nrow(df_raw) - nrow(df), nrow(df)))
+            nrow(df_raw) - nrow(df_econ), nrow(df_econ)))
 
 ### TANK-LEVEL AGGREGATION
 
