@@ -1,3 +1,3 @@
 "model","growth_median_pct","rev_gain_mean","net_profit_mean","net_profit_lo95","net_profit_hi95","p_profitable","be_meal_median","be_meal_lo95","be_meal_hi95"
-"unadjusted",19.68,0.197,0.173,0.044,0.311,0.992,54.22,20.05,92.22
-"adjusted",8.6,0.086,0.062,-0.033,0.163,0.925,24.65,-0.75,52.15
+"unadjusted",14.09,0.141,0.117,0.031,0.208,0.993,39.29,16.64,64.43
+"adjusted",7.45,0.074,0.05,-0.006,0.109,0.964,21.58,6.61,37.72
