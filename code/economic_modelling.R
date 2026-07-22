@@ -2,9 +2,6 @@
 
 ## Step 2: Economic analysis
 
-## Set refit = FALSE to load previously fitted models from models
-refit <- FALSE
-
 ### LOAD PACKAGES
 
 library(tidyverse)
@@ -108,59 +105,16 @@ cat(sprintf("  Implied displaced ingredient cost: $%.2f/kg meal\n", displaced_co
 
 ### BAYESIAN MODELS
 
-# set priors
-priors_logwt <- c(
-  prior(student_t(3, 3.7, 1), class = Intercept),
-  prior(normal(0, 1),         class = b),
-  prior(exponential(1),       class = sigma)
-)
-
-## MODEL 1: UNADJUSTED — diet + scaled start weight only (optimistic ceiling)
-
-if (refit) {
-  fit_weight_final_unadjusted <- brm(
-    formula  = mean_log_weight ~ diet + start_ABW_z, 
-    data     = tank_df,
-    family   = gaussian(),
-    prior    = priors_logwt,
-    chains   = 4,
-    cores    = 4,
-    iter     = 4000,
-    warmup   = 2000,
-    seed     = 42,
-    control  = list(adapt_delta = 0.95)
-  )
-  saveRDS(fit_weight_final_unadjusted, here("models", "fit_weight_final_unadjusted.rds"))
-} else {
-  fit_weight_final_unadjusted <- readRDS(here("models", "fit_weight_final_unadjusted.rds"))
-}
-
-summary(fit_weight_final_unadjusted)
+## MODEL 1: UNADJUSTED — diet + scaled start weight only 
+# This is the optimistic ceiling and simulates potential benefit if feed rates were targeted by biomass
+fit_unadjusted <- readRDS(here("models", "fit_weight_final_unadjusted.rds"))
+summary(fit_unadjusted)
 
 ## MODEL 2: ADJUSTED — diet + per_capita_feed_z + start_ABW_z (primary)
-
-## This is the final model from Bayesian_models.R.
-## Adjusting for per-capita feed removes the feed-availability confound (Ulva tanks received more feed). Adjusting for start_ABW removes the baseline-size imbalance 
-
-if (refit) {
-  fit_weight_final <- brm(
-    formula  = mean_log_weight ~ diet + per_capita_feed_z + start_ABW_z, 
-    data     = tank_df,
-    family   = gaussian(),
-    prior    = priors_logwt,
-    chains   = 4,
-    cores    = 4,
-    iter     = 4000,
-    warmup   = 2000,
-    seed     = 42,
-    control  = list(adapt_delta = 0.95)
-  )
-  saveRDS(fit_weight_final, here("models", "fit_weight_final.rds"))
-} else {
-  fit_weight_final <- readRDS(here("models", "fit_weight_final.rds"))
-}
-
-summary(fit_weight_final)
+# Adjusting for per-capita feed removes the feed-availability confound (Ulva tanks received more feed)
+# Adjusting for start_ABW removes the baseline-size imbalance 
+fit_adjusted <- readRDS(here("models", "fit_weight_final.rds"))
+summary(fit_adjusted)
 
 ### EXTRACT POSTERIORS
 
