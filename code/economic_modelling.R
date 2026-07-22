@@ -2,13 +2,8 @@
 
 ## Step 2: Economic analysis
 
-### MODEL FITTING CONTROL
-
-## Set refit = TRUE to refit all models from scratch and overwrite saved files
-## Set refit = FALSE to load previously fitted models from disk
-## Change to TRUE any time you modify model parameters or data
-
-refit <- TRUE
+## Set refit = FALSE to load previously fitted models from models
+refit <- FALSE
 
 ### LOAD PACKAGES
 
@@ -61,11 +56,6 @@ df <- df_raw |>
 
 cat(sprintf("Rows removed by filter: %d (%d remaining)\n",
             nrow(df_raw) - nrow(df), nrow(df)))
-
-# Subset to control and ulva only — wakame excluded from economic analysis
-df_econ <- df |>
-  filter(diet %in% c("control", "ulva")) |>
-  mutate(diet = droplevels(diet))
 
 ### TANK-LEVEL AGGREGATION
 
@@ -125,33 +115,27 @@ priors_logwt <- c(
   prior(exponential(1),       class = sigma)
 )
 
-refit <- FALSE
-
-## MODEL 1: UNADJUSTED — diet only (optimistic ceiling)
-
-## Intentionally omits feed and starting size so the full observed weight difference is attributed to diet. 
+## MODEL 1: UNADJUSTED — diet + scaled start weight only (optimistic ceiling)
 
 if (refit) {
-  fit_unadjusted <- brm(
-    formula = mean_log_weight ~ diet,
-    data    = tank_df,
-    family  = gaussian(),
-    prior   = priors_logwt,
-    chains  = 4,
-    cores   = 4,
-    iter    = 4000,
-    warmup  = 2000,
-    seed    = 42,
-    control = list(adapt_delta = 0.95)
+  fit_weight_final_unadjusted <- brm(
+    formula  = mean_log_weight ~ diet + start_ABW_z, 
+    data     = tank_df,
+    family   = gaussian(),
+    prior    = priors_logwt,
+    chains   = 4,
+    cores    = 4,
+    iter     = 4000,
+    warmup   = 2000,
+    seed     = 42,
+    control  = list(adapt_delta = 0.95)
   )
-  saveRDS(fit_unadjusted, here("models", "fit_unadjusted.rds"))
+  saveRDS(fit_weight_final_unadjusted, here("models", "fit_weight_final_unadjusted.rds"))
 } else {
-  fit_unadjusted <- readRDS(here("models", "fit_unadjusted.rds"))
+  fit_weight_final_unadjusted <- readRDS(here("models", "fit_weight_final_unadjusted.rds"))
 }
 
-summary(fit_unadjusted)
-p_pp_unadjusted <- pp_check(fit_unadjusted)
-ggsave(here("figures", "pp_check_unadjusted.png"), plot = p_pp_unadjusted, dpi = 300, width = 8, height = 6, units = "in")
+summary(fit_weight_final_unadjusted)
 
 ## MODEL 2: ADJUSTED — diet + per_capita_feed_z + start_ABW_z (primary)
 
@@ -159,26 +143,24 @@ ggsave(here("figures", "pp_check_unadjusted.png"), plot = p_pp_unadjusted, dpi =
 ## Adjusting for per-capita feed removes the feed-availability confound (Ulva tanks received more feed). Adjusting for start_ABW removes the baseline-size imbalance 
 
 if (refit) {
-  fit_adjusted <- brm(
-    formula = mean_log_weight ~ diet + per_capita_feed_z + start_ABW_z,
-    data    = tank_df,
-    family  = gaussian(),
-    prior   = priors_logwt,
-    chains  = 4,
-    cores   = 4,
-    iter    = 4000,
-    warmup  = 2000,
-    seed    = 42,
-    control = list(adapt_delta = 0.95)
+  fit_weight_final <- brm(
+    formula  = mean_log_weight ~ diet + per_capita_feed_z + start_ABW_z, 
+    data     = tank_df,
+    family   = gaussian(),
+    prior    = priors_logwt,
+    chains   = 4,
+    cores    = 4,
+    iter     = 4000,
+    warmup   = 2000,
+    seed     = 42,
+    control  = list(adapt_delta = 0.95)
   )
-  saveRDS(fit_adjusted, here("models", "fit_adjusted.rds"))
+  saveRDS(fit_weight_final, here("models", "fit_weight_final.rds"))
 } else {
-  fit_adjusted <- readRDS(here("models", "fit_adjusted.rds"))
+  fit_weight_final <- readRDS(here("models", "fit_weight_final.rds"))
 }
 
-summary(fit_adjusted)
-p_pp_adjusted <- pp_check(fit_adjusted)
-ggsave(here("figures", "pp_check_adjusted.png"), plot = p_pp_adjusted, dpi = 300, width = 8, height = 6, units = "in")
+summary(fit_weight_final)
 
 ### EXTRACT POSTERIORS
 
