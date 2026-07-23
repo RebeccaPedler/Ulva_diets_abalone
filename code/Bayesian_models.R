@@ -705,7 +705,7 @@ post_full   <- as_draws_df(fit_weight_final)$b_dietulva
 post_noinfl <- as_draws_df(fit_weight_noinfl)$b_dietulva
 
 compare_tbl <- tibble(
-  model      = c("Full (8 tanks)", "Excl. E04 + E13 (6 tanks)"),
+  model      = c("Full (12 tanks)", "Excl. E04 + E13 (10 tanks)"),
   median_log = c(median(post_full),  median(post_noinfl)),
   lower95    = c(quantile(post_full, .025),  quantile(post_noinfl, .025)),
   upper95    = c(quantile(post_full, .975),  quantile(post_noinfl, .975)),
