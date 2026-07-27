@@ -1,6 +1,3 @@
-setwd("C:/Users/RebeccaPedler/Documents/Ulva_diets_abalone")
-library(here)
-
 # Project: A probabilistic cost–benefit analysis of macroalgal dietary supplementation in commercial greenlip abalone (Haliotis laevigata) aquaculture
 
 ## Step 1: Running Bayesion models
@@ -62,6 +59,13 @@ missing_summary <- df_raw |>
   filter(n_missing > 0)
 
 print(missing_summary) # dataframe is empty
+
+## E01 had really high mortality due to TGP spike in late January - remove this tank because of TGP confound
+
+# Remove E01 for all downstream analysis
+
+df_raw <- df_raw |>
+  filter(tank != "E01")
 
 # Filter out biologically implausible values (abalone below 10g or above 150g) 
 n_before <- nrow(df_raw)
@@ -217,22 +221,12 @@ tank_df |>
   as.data.frame() |>
   print(row.names = FALSE)
 
-## E01 has really high mortality due to TGP spike in late January
-
-# Remove E01 for all downstream analysis
-
-tank_df <- tank_df |>
-  filter(tank != "E01")
-
-df <- df |>
-  filter(tank != "E01")
-
 # Summary by diet
 start_vars <- c("start_ABL", "start_ABW", "start_density", "start_biomass", "start_count", 
                 "end_density", "end_count", "mortality_p", "per_capita_feed")
 for (v in start_vars) {
   cat(sprintf("\n--- %s ---\n", v))
-  tank_df |>
+  df |>
     group_by(diet) |>
     summarise(
       n      = n(),
