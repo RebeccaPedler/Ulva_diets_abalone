@@ -220,7 +220,11 @@ tank_df |>
 ## E01 has really high mortality due to TGP spike in late January
 
 # Remove E01 for all downstream analysis
+
 tank_df <- tank_df |>
+  filter(tank != "E01")
+
+df <- df |>
   filter(tank != "E01")
 
 # Summary by diet
