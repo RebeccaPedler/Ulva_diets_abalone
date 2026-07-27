@@ -1,3 +1,6 @@
+setwd("C:/Users/RebeccaPedler/Documents/Ulva_diets_abalone")
+library(here)
+
 # Project: A probabilistic cost–benefit analysis of macroalgal dietary supplementation in commercial greenlip abalone (Haliotis laevigata) aquaculture
 
 ## Step 1: Running Bayesion models
@@ -213,7 +216,13 @@ tank_df |>
   mutate(across(where(is.numeric), ~ round(.x, 3))) |>
   as.data.frame() |>
   print(row.names = FALSE)
- 
+
+## E01 has really high mortality due to TGP spike in late January
+
+# Remove E01 for all downstream analysis
+tank_df <- tank_df |>
+  filter(tank != "E01")
+
 # Summary by diet
 start_vars <- c("start_ABL", "start_ABW", "start_density", "start_biomass", "start_count", 
                 "end_density", "end_count", "mortality_p", "per_capita_feed")
@@ -254,7 +263,8 @@ for (v in start_vars) {
   }
 }
 
-## end_density and mortality significantly lower in wakame treatment compared to Ulva and control
+## Animals in the wakame treatment died more, finished at a lower density and had higher feed availability compared to Ulva and commercial
+# Any growth improvement cannot be reliably attributed to wakame
 
 ### CORRELATION BETWEEN MODERATORS
 
@@ -705,7 +715,7 @@ post_full   <- as_draws_df(fit_weight_final)$b_dietulva
 post_noinfl <- as_draws_df(fit_weight_noinfl)$b_dietulva
 
 compare_tbl <- tibble(
-  model      = c("Full (12 tanks)", "Excl. E04 + E13 (10 tanks)"),
+  model      = c("Full (11 tanks)", "Excl. E04 + E13 (9 tanks)"),
   median_log = c(median(post_full),  median(post_noinfl)),
   lower95    = c(quantile(post_full, .025),  quantile(post_noinfl, .025)),
   upper95    = c(quantile(post_full, .975),  quantile(post_noinfl, .975)),
@@ -805,4 +815,3 @@ summary(fit_weight_final_unadjusted)
 ## NEXT: Run economic_modelling.R
 
 ### END OF SCRIPT ###
- 
