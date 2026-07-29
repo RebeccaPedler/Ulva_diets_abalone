@@ -114,13 +114,13 @@ print(out_summary)
 ### CREATE HISTOGRAMS
 
 # Function: histogram + density coloured by diet
-hist_diet <- function(var, xlab, binwidth = NULL) {
-  p <- ggplot(df, aes(x = .data[[var]], fill = diet, colour = diet)) +
+hist_diet <- function(var, xlab, binwidth = NULL, data = df) {
+  ggplot(data, aes(x = .data[[var]], fill = diet, colour = diet)) +
     geom_histogram(
       aes(y = after_stat(density)),
-      bins     = 45,
-      alpha    = 0.45,
-      position = "identity",
+      bins      = 45,
+      alpha     = 0.45,
+      position  = "identity",
       linewidth = 0.2
     ) +
     geom_density(alpha = 0, linewidth = 0.7) +
@@ -136,7 +136,7 @@ hist_diet <- function(var, xlab, binwidth = NULL) {
       legend.position  = "right"
     )
 }
- 
+
 # Function: boxplot by tank, coloured by diet
 box_tank <- function(var, ylab) {
   ggplot(df, aes(x = tank, y = .data[[var]], fill = diet)) +
@@ -174,6 +174,16 @@ p_wt_box  <- box_tank("weight_g", "Final weight (g)")
 p_wt_box
 
 ggsave(here("figures", "p_wt_box.png"), plot = p_wt_box, dpi = 300, width = 9, height = 8, units = "in")
+
+# Drop wakame and plot just Ulva vs control
+df_no_wakame <- df |>
+  filter(diet != "wakame") |>
+  mutate(diet = droplevels(diet))
+
+p_wt_log_hist_Ulva <- hist_diet("log_weight", "log(weight) (g)", data = df_no_wakame)
+p_wt_log_hist_Ulva
+
+ggsave(here("figures", "p_wt_log_hist_Ulva.png"),plot = p_wt_log_hist_Ulva, dpi = 300, width = 9, height = 8, units = "in")
 
 ## Numerical summarry
 
@@ -813,3 +823,4 @@ summary(fit_weight_final_unadjusted)
 ## NEXT: Run economic_modelling.R
 
 ### END OF SCRIPT ###
+ 

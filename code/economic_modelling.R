@@ -42,7 +42,9 @@ df_raw <- df_raw |>
     tank       = factor(tank),
     diet       = factor(diet, levels = c("control", "ulva", "wakame")),
     log_weight = log(weight_g)
-  )
+  ) |>
+  filter(
+    tank != "E01")
 
 # Filter biologically implausible values (segmentation artefacts)
 df_econ <- df_raw |>
@@ -87,7 +89,7 @@ ulva_diet_price <-  3.78   # $/kg finished Ulva diet
 ctrl_diet_price <-  2.47   # $/kg finished control diet
 ulva_meal_price <-  8.22   # $/kg Ulva meal (the key negotiable lever)
 ulva_inclusion  <-  0.20   # Ulva meal inclusion rate (20%)
-TARGET_G        <- 80.0    # target harvest weight for SGR analysis (g, whole animal)
+TARGET_G        <- 90.0    # target harvest weight for SGR analysis (g, whole animal)
 DAYS            <- 131     # trial duration (days)
 FEED_RATE       <- 0.01    # assumed feed rate for SGR analysis (1% BW/day;
                            # cancels algebraically in net cost comparisons)
