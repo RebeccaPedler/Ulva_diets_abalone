@@ -677,22 +677,9 @@ ggsave(here("figures", "p_harvest_sensitivity.png"), plot = p_harvest, dpi = 300
 
 ### PART D — BREAK-EVEN AND 95%-PROFITABLE PRICE ACROSS FEED OPEX SHARE x HARVEST WEIGHT
 
-## Question: how sensitive are the break-even price and the 95%-confidence
-## profitable price to the assumed feed share of total opex, across the same
-## harvest-weight grid used above? feed_share = 0.20 is only the FRDC survey
-## average across 7 farms -- this sweeps a plausible range either side of it.
-##
-## Two quantities per (feed_share, target_g) cell:
-##   - break-even price:  median of the be_meal_price posterior (where the
-##     "average" draw breaks even -- P(saving > 0) is ~50% here)
-##   - 95%-profitable price: the meal price below which Ulva is cost-saving
-##     in at least 95% of posterior draws. Because total_cost_saving() is an
-##     affine (linear) function of meal_price for any fixed draw b, each
-##     draw's own break-even price m*(b) = be_meal_price(b, ...), and
-##     saving(b, m) > 0 iff m < m*(b). So P(saving > 0) >= 0.95 at price m
-##     iff m is at or below the 5th percentile of the be_meal_price
-##     posterior -- no separate price grid search is needed.
+## Question: how sensitive are the break-even price and the 95% profitable price to feed share of total opex, across a range of harvest weights
 
+# Create grid
 build_price_tables <- function(b, label) {
 
   be_median <- matrix(
