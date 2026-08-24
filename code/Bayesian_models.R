@@ -1,3 +1,6 @@
+setwd("C:/Users/RebeccaPedler/Documents/Ulva_diets_abalone")
+library(here)
+
 # Project: A probabilistic cost–benefit analysis of macroalgal dietary supplementation in commercial greenlip abalone (Haliotis laevigata) aquaculture
 
 ## Step 1: Running Bayesion models
@@ -24,7 +27,7 @@ library(FSA)
 ## Set refit = FALSE to load previously fitted models from disk
 ## Change to TRUE any time you modify model parameters or data
 
-refit <- TRUE
+refit <- FALSE
 
 ### LOAD DATA
 
@@ -169,6 +172,15 @@ p_wt_log_hist <- hist_diet("log_weight", "log(weight) (g)")
 p_wt_log_hist
 
 ggsave(here("figures", "p_wt_log_hist.png"), plot = p_wt_log_hist, dpi = 300, width = 9, height = 8, units = "in")
+
+# Combine plots
+p_combined <- p_wt_hist + p_wt_log_hist +
+  plot_annotation(tag_levels = "A", tag_suffix = ")") &
+  theme(plot.tag = element_text(face = "bold"))
+
+p_combined
+
+ggsave(here("figures", "p_wt_combined_hist.png"), plot = p_combined, dpi = 300, width = 14, height = 8, units = "in")
 
 p_wt_box  <- box_tank("weight_g", "Final weight (g)") 
 p_wt_box
@@ -381,7 +393,7 @@ icc_summary <- tibble(
  
 print(icc_summary)
 
-## Tank membership explains approx. 10% of variation between abalone length
+## Tank membership explains approx. 10% of variation between abalone weights. Remaining 90% is individual-level
 
 ## Bayesian mixed models — aggregated to tank level to conserve proccessing speed
 # Aggregate data to tank level
@@ -404,7 +416,7 @@ tank_df <- df |>
     .groups = "drop"
   )
 
- # Create scaled random effects
+# Create scaled random effects
 tank_df <- tank_df |>
   mutate(
     start_ABW_z         = scale(start_ABW)[, 1],
@@ -416,6 +428,31 @@ tank_df <- tank_df |>
     mortality_z         = scale(mortality) [,1],
     end_density_z       = scale(end_density)[, 1], 
   )
+
+## CREATE FUNCTION FOR PULLING POSTERIOR PROBABILITIES
+
+posterior_summary_table <- function(model, direction = c("greater", "less"), digits = 3) {
+
+  direction <- match.arg(direction)
+
+  draws <- as_draws_df(model) %>%
+    select(starts_with("b_"))
+
+  purrr::map_dfr(names(draws), function(param) {
+    b <- draws[[param]]
+
+    tibble(
+      effect    = param,
+      estimate  = median(b),
+      est_error = sd(b),
+      lower95   = quantile(b, 0.025),
+      upper95   = quantile(b, 0.975),
+      p_direction = if (direction == "greater") mean(b > 0) else mean(b < 0)
+    )
+  }) %>%
+    rename(!!paste0("p_", direction, "_0") := p_direction) %>%
+    mutate(across(where(is.numeric), ~ round(.x, digits)))
+}
 
 ## SET PRIORS  
  
@@ -528,6 +565,9 @@ summary(fit_weight_sens)
 p_pp_sens <- pp_check(fit_weight_sens)
 ggsave(here("figures", "pp_check_sens.png"), plot = p_pp_sens, dpi = 300, width = 8, height = 6, units = "in")
 
+# Get probabilities 
+posterior_summary_table(fit_weight_sens)
+
 # MODEL B5: Sensitivity test (add start_ABW_z) - with weakly informative priors
 
 if (refit) {
@@ -551,6 +591,9 @@ if (refit) {
 summary(fit_weight_sens2)
 p_pp_sens2 <- pp_check(fit_weight_sens2)
 ggsave(here("figures", "pp_check_sens2.png"), plot = p_pp_sens2, dpi = 300, width = 8, height = 6, units = "in")
+
+# Get probabilities 
+posterior_summary_table(fit_weight_sens2)
 
 # LEAVE-ONE-OUT COMPARISON
 
@@ -592,6 +635,9 @@ if (refit) {
 }
 
 summary(fit_weight_final)
+
+# Get probabilities 
+posterior_summary_table(fit_weight_final)
 
 ## Check diagnostics
 
@@ -823,4 +869,3 @@ summary(fit_weight_final_unadjusted)
 ## NEXT: Run economic_modelling.R
 
 ### END OF SCRIPT ###
- 
