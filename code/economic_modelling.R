@@ -104,9 +104,9 @@ opex_shares <- c(
 )
 stopifnot(abs(sum(opex_shares) - 1) < 1e-8)
 
-feed_share      <- opex_shares[["feed"]]        # 0.20
-non_feed_share  <- 1 - feed_share               # 0.80
-non_feed_multiplier <- non_feed_share / feed_share  # 4.0 — non-feed $ per $1 of feed cost
+## Create range for feed's share of total opex (used in sensitivity analysis in Part D)
+feed_share_ref  <- opex_shares[["feed"]]                     # 0.20 (FRDC baseline)
+feed_share_grid <- c(0.10, 0.15, 0.20, 0.25, 0.30)
 
 ## Diet premium: extra cost per kg of feed to use the Ulva diet
 diet_premium <- ulva_diet_price - ctrl_diet_price   # $1.31/kg
@@ -354,7 +354,7 @@ p_premium <- ggplot(premium_df, aes(x = meal_price, y = diet_premium)) +
 print(p_premium)
 ggsave(here("figures", "p_premium.png"), plot = p_premium, dpi = 300, width = 8, height = 5, units = "in")
 
-### PART C: TIME-TO-HARVEST BREAK-EVEN USING SGR (OPEX-WEIGHTED)
+### PART C1: TIME-TO-HARVEST BREAK-EVEN USING SGR (OPEX-WEIGHTED)
 
 # Ulva final weight per posterior draw, projected from the common baseline W0_ref
 ulva_Wf <- function(b) ctrl_Wf * exp(b)
@@ -380,12 +380,16 @@ days_ctrl_at <- function(target_g = TARGET_G) {
   days_to_target(ctrl_sgr, target_g)
 }
 
-# Non-feed opex accrual rate ($/animal/day), benchmarked from Mick Keogh
-non_feed_opex_per_day <- (feed_cost_ctrl_at(TARGET_G) / days_ctrl_at(TARGET_G)) * non_feed_multiplier
+# Non-feed opex accrual rate ($/animal/day), benchmarked off the control tank's feed-cost rate and feed_share
+non_feed_opex_per_day_for <- function(feed_share = feed_share_ref, target_g_ref = TARGET_G) {
+  non_feed_multiplier <- (1 - feed_share) / feed_share
+  (feed_cost_ctrl_at(target_g_ref) / days_ctrl_at(target_g_ref)) * non_feed_multiplier
+}
 
-# Control total cost (feed + non-feed opex) to reach a given target
-total_cost_ctrl_at <- function(target_g = TARGET_G) {
-  feed_cost_ctrl_at(target_g) + non_feed_opex_per_day * days_ctrl_at(target_g)
+# Control total cost (feed + non-feed opex) to reach a given target, at a given feed_share
+# Equal to feed_cost_ctrl_at(target_g) / feed_share only when target_g == TARGET_G 
+total_cost_ctrl_at <- function(target_g = TARGET_G, feed_share = feed_share_ref) {
+  feed_cost_ctrl_at(target_g) + non_feed_opex_per_day_for(feed_share) * days_ctrl_at(target_g)
 }
 
 # Ulva diet price implied by a given Ulva meal price (fixed inclusion rate)
@@ -393,28 +397,28 @@ ulva_diet_from_meal <- function(meal_price) {
   ctrl_diet_price + ulva_inclusion * (meal_price - displaced_cost)
 }
 
-# Ulva total cost (feed + non-feed opex) to reach a given target, per draw
-total_cost_ulva_at <- function(b, diet_price, target_g = TARGET_G) {
+# Ulva total cost (feed + non-feed opex) to reach target
+total_cost_ulva_at <- function(b, diet_price, target_g = TARGET_G, feed_share = feed_share_ref) {
   feed_to_target_kg(ulva_sgr(b), target_g) * diet_price +
-    non_feed_opex_per_day * days_to_target(ulva_sgr(b), target_g)
+    non_feed_opex_per_day_for(feed_share) * days_to_target(ulva_sgr(b), target_g)
 }
 
-# Net saving = control total cost − Ulva total cost (positive = Ulva cheaper)
-total_cost_saving <- function(b, meal_price, target_g = TARGET_G) {
-  total_cost_ctrl_at(target_g) -
-    total_cost_ulva_at(b, ulva_diet_from_meal(meal_price), target_g)
+# Net saving = control total cost − Ulva total cost
+total_cost_saving <- function(b, meal_price, target_g = TARGET_G, feed_share = feed_share_ref) {
+  total_cost_ctrl_at(target_g, feed_share) -
+    total_cost_ulva_at(b, ulva_diet_from_meal(meal_price), target_g, feed_share)
 }
 
 # Break-even Ulva diet price: diet price at which total cost saving = 0
-be_diet_price <- function(b, target_g = TARGET_G) {
-  (total_cost_ctrl_at(target_g) -
-     non_feed_opex_per_day * days_to_target(ulva_sgr(b), target_g)) /
+be_diet_price <- function(b, target_g = TARGET_G, feed_share = feed_share_ref) {
+  (total_cost_ctrl_at(target_g, feed_share) -
+     non_feed_opex_per_day_for(feed_share) * days_to_target(ulva_sgr(b), target_g)) /
     feed_to_target_kg(ulva_sgr(b), target_g)
 }
 
 # Break-even Ulva meal price: backed out from the diet price break-even
-be_meal_price <- function(b, target_g = TARGET_G) {
-  displaced_cost + (be_diet_price(b, target_g) - ctrl_diet_price) / ulva_inclusion
+be_meal_price <- function(b, target_g = TARGET_G, feed_share = feed_share_ref) {
+  displaced_cost + (be_diet_price(b, target_g, feed_share) - ctrl_diet_price) / ulva_inclusion
 }
 
 ## Common starting weight and control SGR from the trial 
@@ -464,6 +468,7 @@ sgr_summary <- bind_rows(
 
 print(as.data.frame(sgr_summary), row.names = FALSE)
 
+# Consolidated summary data
 for (lbl in c("unadjusted", "adjusted")) {
   row <- sgr_summary |> filter(model == lbl)
   cat(sprintf("  [%s]\n", lbl))
@@ -480,7 +485,7 @@ for (lbl in c("unadjusted", "adjusted")) {
               row$be_diet_median, row$be_diet_lo95, row$be_diet_hi95))
 }
 
-## PART C: PROBABILITY-OF-POSITIVE-SAVING CURVE (across Ulva meal price, 80g target)
+## PART C2: PROBABILITY-OF-POSITIVE-SAVING CURVE (across Ulva meal price, 80g target)
 
 meal_grid_sgr <- seq(0, 20, by = 0.25)
 
@@ -500,19 +505,14 @@ saving_curve_df <- bind_rows(
   prob_saving_curve(b_adjusted,   "adjusted")
 )
 
-# Highest meal price where P still meets threshold
+# Highest meal price where probability of being profitable is 95%
 thresh <- saving_curve_df |>
   group_by(model) |>
   summarise(
     price_above_95 = {
       vals <- meal_price[p_saving_pos >= 0.95]
       if (length(vals) == 0) NA_real_ else max(vals)
-    },
-    price_above_50 = {
-      vals <- meal_price[p_saving_pos >= 0.50]
-      if (length(vals) == 0) NA_real_ else max(vals)
-    },
-    .groups = "drop"
+    }
   )
 
 print(as.data.frame(thresh), row.names = FALSE)
@@ -564,7 +564,7 @@ p_saving_curve <- ggplot(saving_curve_df,
 print(p_saving_curve)
 ggsave(here("figures", "p_sgr_saving_by_meal_price.png"), plot = p_saving_curve, dpi = 300, width = 9, height = 6, units = "in")
 
-### PART C: POSTERIOR DISTRIBUTION OF DAYS SAVED
+### PART C2: POSTERIOR DISTRIBUTION OF DAYS SAVED
 
 days_df <- bind_rows(
   tibble(days_saved = days_saved(b_unadjusted), model = "unadjusted"),
@@ -595,6 +595,7 @@ p_days <- ggplot(days_df, aes(x = days_saved, fill = model, colour = model)) +
     labels = c("unadjusted" = "Unadjusted (optimistic ceiling)",
                "adjusted"   = "Adjusted: feed + start weight")
   ) +
+  scale_x_continuous(limits = c(-50, 125), breaks = seq(-50, 125, 25)) +
   labs(
     x        = sprintf("Days saved to reach %.0fg harvest weight", TARGET_G),
     y        = "Density"
@@ -606,7 +607,7 @@ ggsave(here("figures", "p_days_saved.png"), plot = p_days, dpi = 300, width = 9,
 
 ### PART D — SENSITIVITY TO HARVEST TARGET WEIGHT
 
-## Question: How does the (opex-weighted) break-even Ulva meal price shift across a range of harvest target weights
+## Question: How does the (opex-weighted) break-even Ulva meal price shift across a range of harvest target weights 
 
 harvest_grid <- seq(80, 130, by = 10)
 
@@ -674,6 +675,65 @@ p_harvest <- ggplot(harvest_sensitivity_df,
 print(p_harvest)
 ggsave(here("figures", "p_harvest_sensitivity.png"), plot = p_harvest, dpi = 300, width = 9, height = 6, units = "in")
 
+### PART D — BREAK-EVEN AND 95%-PROFITABLE PRICE ACROSS FEED OPEX SHARE x HARVEST WEIGHT
+
+## Question: how sensitive are the break-even price and the 95%-confidence
+## profitable price to the assumed feed share of total opex, across the same
+## harvest-weight grid used above? feed_share = 0.20 is only the FRDC survey
+## average across 7 farms -- this sweeps a plausible range either side of it.
+##
+## Two quantities per (feed_share, target_g) cell:
+##   - break-even price:  median of the be_meal_price posterior (where the
+##     "average" draw breaks even -- P(saving > 0) is ~50% here)
+##   - 95%-profitable price: the meal price below which Ulva is cost-saving
+##     in at least 95% of posterior draws. Because total_cost_saving() is an
+##     affine (linear) function of meal_price for any fixed draw b, each
+##     draw's own break-even price m*(b) = be_meal_price(b, ...), and
+##     saving(b, m) > 0 iff m < m*(b). So P(saving > 0) >= 0.95 at price m
+##     iff m is at or below the 5th percentile of the be_meal_price
+##     posterior -- no separate price grid search is needed.
+
+build_price_tables <- function(b, label) {
+
+  be_median <- matrix(
+    NA_real_, nrow = length(feed_share_grid), ncol = length(harvest_grid),
+    dimnames = list(sprintf("feed_%.0f%%", feed_share_grid * 100),
+                    sprintf("%.0fg", harvest_grid))
+  )
+  be_p95 <- be_median
+
+  for (i in seq_along(feed_share_grid)) {
+    fs <- feed_share_grid[i]
+    for (j in seq_along(harvest_grid)) {
+      tg <- harvest_grid[j]
+      draws <- be_meal_price(b, target_g = tg, feed_share = fs)
+      be_median[i, j] <- round(median(draws), 2)
+      be_p95[i, j]    <- round(quantile(draws, 0.05), 2)
+    }
+  }
+
+  list(
+    breakeven = as.data.frame(be_median) |> tibble::rownames_to_column("feed_opex_share"),
+    p95       = as.data.frame(be_p95)    |> tibble::rownames_to_column("feed_opex_share"),
+    model     = label
+  )
+}
+
+tables_unadjusted <- build_price_tables(b_unadjusted, "unadjusted")
+tables_adjusted    <- build_price_tables(b_adjusted,   "adjusted")
+
+## BREAK EVEN PRICE
+## Unadjusted model
+print(tables_unadjusted$breakeven, row.names = FALSE)
+## Adjusted model
+print(tables_adjusted$breakeven, row.names = FALSE)
+
+## 95% PROFITABLE PRICE
+## Unadjusted model
+print(tables_unadjusted$p95, row.names = FALSE)
+## Adjusted model
+print(tables_adjusted$p95, row.names = FALSE)
+
 ### EXPORT ALL DATA AS CSV
 write.csv(econ_summary,             here("outputs", "ulva_economic_summary.csv"),        row.names = FALSE)
 write.csv(curve_df,                 here("outputs", "ulva_breakeven_curve.csv"),          row.names = FALSE)
@@ -681,5 +741,9 @@ write.csv(premium_df,                here("outputs", "ulva_premium_curve.csv"), 
 write.csv(sgr_summary,               here("outputs", "ulva_sgr_economic_summary.csv"),     row.names = FALSE)
 write.csv(saving_curve_df,           here("outputs", "ulva_sgr_saving_curve.csv"),         row.names = FALSE)
 write.csv(harvest_sensitivity_df,    here("outputs", "ulva_harvest_sensitivity.csv"),      row.names = FALSE)
+write.csv(tables_unadjusted$breakeven, here("outputs", "ulva_breakeven_by_opexshare_unadjusted.csv"), row.names = FALSE)
+write.csv(tables_adjusted$breakeven,   here("outputs", "ulva_breakeven_by_opexshare_adjusted.csv"),   row.names = FALSE)
+write.csv(tables_unadjusted$p95,       here("outputs", "ulva_p95_by_opexshare_unadjusted.csv"),       row.names = FALSE)
+write.csv(tables_adjusted$p95,         here("outputs", "ulva_p95_by_opexshare_adjusted.csv"),         row.names = FALSE)
 
 ### END OF SCRIPT ###
