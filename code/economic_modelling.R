@@ -82,7 +82,6 @@ tank_df |>
 ### ECONOMIC INPUTS
 ## All prices AUD. Feed quantities converted to kg where relevant.
 
-farmgate_price  <- 25.00   # $/kg whole abalone at farmgate
 ulva_diet_price <-  3.78   # $/kg finished Ulva diet
 ctrl_diet_price <-  2.47   # $/kg finished control diet
 ulva_meal_price <-  8.22   # $/kg Ulva meal (the key negotiable lever)
@@ -151,23 +150,6 @@ cat(sprintf("  Growth — adjusted (primary):        median %+.2f%%  P(>0) = %.3
 
 ### PER-ANIMAL DATA FROM TRIAL 
 
-## Get the control mean final weight (kg). This is the baseline animal whose growth is scaled in FW analysis
-
-control_weight_kg <- df_econ |>
-  filter(diet == "control") |>
-  summarise(w = mean(weight_g) / 1000) |>
-  pull(w)
-
-## Per-capita feed in kg in control tank
-
-feed_kg <- tank_df |>
-  filter(diet == "control") |>
-  summarise(f = mean(per_capita_feed) / 1e6) |>   # mg -> kg
-  pull(f)
-
-cat(sprintf("\n  Control mean final weight:         %.2f g\n", control_weight_kg * 1000))
-cat(sprintf("  Per-animal feed (control basis):   %.2f g  (%.6f kg)\n",
-            feed_kg * 1000, feed_kg))
 
 ## Common starting weight for SGR analysis (control tank mean)
 
@@ -183,129 +165,15 @@ ctrl_Wf  <- tank_df |>
   pull(w)
 
 ctrl_sgr <- (log(ctrl_Wf) - log(W0_ref)) / DAYS   # per day, natural log scale
-days_ctrl <- log(TARGET_G / W0_ref) / ctrl_sgr     # days for control to reach target
 
 cat(sprintf("\n  Common starting weight (control grand mean):  %.2f g\n", W0_ref))
 cat(sprintf("  Control SGR:                                  %.4f %%/day\n", ctrl_sgr * 100))
-cat(sprintf("  Days for control to reach %.0fg:              %.1f days\n", TARGET_G, days_ctrl))
-
-### PART A — FINAL WEIGHT BREAK-EVEN (fixed time point, day 131)
-
-## Question: Is the larger final weight in Ulva tanks enough to counteract diet premium?
-
-## Derive economic functions
-
-## Revenue gained per animal from Ulva relative to control:
-revenue_gain <- function(growth) {
-  control_weight_kg * growth * farmgate_price
-}
-
-## Extra feed cost per animal at a given Ulva meal price:
-extra_feed_cost <- function(meal_price) {
-  premium <- ulva_inclusion * (meal_price - displaced_cost)
-  feed_kg * premium
-}
-
-## Net profit per animal = revenue gain − extra feed cost
-net_profit <- function(growth, meal_price) {
-  revenue_gain(growth) - extra_feed_cost(meal_price)
-}
-
-## Break-even Ulva meal price: the meal price at which net_profit = 0
-breakeven_meal_price <- function(growth) {
-  displaced_cost + revenue_gain(growth) / (feed_kg * ulva_inclusion)
-}
-
-## Summary for Part A:
-
-summarise_economics <- function(growth, label) {
-  be  <- breakeven_meal_price(growth)
-  net <- net_profit(growth, ulva_meal_price)
-  tibble(
-    model             = label,
-    growth_median_pct = round(median(growth) * 100, 2),
-    rev_gain_mean     = round(mean(revenue_gain(growth)), 3),
-    net_profit_mean   = round(mean(net), 3),
-    net_profit_lo95   = round(quantile(net, 0.025), 3),
-    net_profit_hi95   = round(quantile(net, 0.975), 3),
-    p_profitable      = round(mean(net > 0), 3),
-    be_meal_median    = round(median(be), 2),
-    be_meal_lo95      = round(quantile(be, 0.025), 2),
-    be_meal_hi95      = round(quantile(be, 0.975), 2)
-  )
-}
-
-econ_summary <- bind_rows(
-  summarise_economics(growth_unadjusted, "unadjusted"),
-  summarise_economics(growth_adjusted,   "adjusted")
-)
-
-print(as.data.frame(econ_summary), row.names = FALSE)
-
-## Probability of profit curve
-
-meal_grid_fw <- seq(0, 60, by = 0.5)
-
-prob_curve <- function(growth, label) {
-  tibble(meal_price = meal_grid_fw) |>
-    rowwise() |>
-    mutate(
-      p_profitable = mean(net_profit(growth, meal_price) > 0),
-      model        = label
-    ) |>
-    ungroup()
-}
-
-curve_df <- bind_rows(
-  prob_curve(growth_unadjusted, "unadjusted"),
-  prob_curve(growth_adjusted,   "adjusted")
-)
-
-p_breakeven <- ggplot(curve_df,
-                      aes(x = meal_price, y = p_profitable,
-                          colour = model, linetype = model)) +
-  geom_vline(xintercept = ulva_meal_price,
-             colour = "#993C1D", linewidth = 0.5) +
-  geom_hline(yintercept = 0.5,
-             colour = "grey70", linewidth = 0.3, linetype = "dotted") +
-  geom_line(linewidth = 1) +
-  annotate("text",
-           x = ulva_meal_price + 1, y = 0.05,
-           label = sprintf("Actual meal\nprice $%.2f/kg", ulva_meal_price),
-           hjust = 0, size = 3, colour = "#993C1D") +
-  scale_colour_manual(
-    values = model_cols,
-    labels = c("unadjusted" = "Unadjusted (optimistic ceiling)",
-               "adjusted"   = "Adjusted: feed + start weight")
-  ) +
-  scale_linetype_manual(
-    values = c("unadjusted" = "solid", "adjusted" = "dashed"),
-    labels = c("unadjusted" = "Unadjusted (optimistic ceiling)",
-               "adjusted"   = "Adjusted: feed + start weight")
-  ) +
-  scale_y_continuous(labels = percent_format(), limits = c(0, 1)) +
-  scale_x_continuous(labels = dollar_format()) +
-  labs(
-    x        = "Ulva meal price ($/kg)",
-    y        = "P(Ulva profitable)"
-  ) +
-  theme_ulva() +
-  theme(
-    legend.position     = c(0.98, 0.98),
-    legend.justification = c("right", "top"),
-    legend.background   = element_rect(fill = "white", colour = "grey85",
-                                       linewidth = 0.3),
-    legend.margin       = margin(4, 6, 4, 6)
-  )
-
-print(p_breakeven)
-ggsave(here("figures", "p_breakeven.png"),
-       plot = p_breakeven, dpi = 300, width = 9, height = 6, units = "in")
-
 
 ### PART B: DIET PREMIUM AS A FUNCTION OF ULVA MEAL PRICE
 
 ## Question: How does diet premium scale with price of raw Ulva meal?
+
+meal_grid_fw <- seq(0, 60, by = 0.5)
 
 premium_from_meal <- function(meal_price) {
   ulva_inclusion * (meal_price - displaced_cost)
@@ -722,8 +590,6 @@ print(tables_unadjusted$p95, row.names = FALSE)
 print(tables_adjusted$p95, row.names = FALSE)
 
 ### EXPORT ALL DATA AS CSV
-write.csv(econ_summary,             here("outputs", "ulva_economic_summary.csv"),        row.names = FALSE)
-write.csv(curve_df,                 here("outputs", "ulva_breakeven_curve.csv"),          row.names = FALSE)
 write.csv(premium_df,                here("outputs", "ulva_premium_curve.csv"),            row.names = FALSE)
 write.csv(sgr_summary,               here("outputs", "ulva_sgr_economic_summary.csv"),     row.names = FALSE)
 write.csv(saving_curve_df,           here("outputs", "ulva_sgr_saving_curve.csv"),         row.names = FALSE)
