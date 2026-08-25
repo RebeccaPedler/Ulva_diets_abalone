@@ -663,7 +663,7 @@ p_effects <- ggplot(draws_diet, aes(x = pct_growth, y = diet, fill = diet)) +
     labels = function(x) parse(text = ifelse(x == "ulva", "italic('Ulva')", "'Wakame'"))
   ) +
   labs(
-    x = "Growth effect vs control (%)",
+    x = "Increase in final weight relative to control diet (%)",
     y = NULL,
   ) +
   theme_minimal(base_size = 11) +
