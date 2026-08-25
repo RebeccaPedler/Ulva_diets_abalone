@@ -639,6 +639,43 @@ summary(fit_weight_final)
 # Get probabilities 
 posterior_summary_table(fit_weight_final)
 
+### PLOTS FOR FINAL MODEL
+
+## Panel A: posterior densities of the diet coefficients 
+draws_diet <- fit_weight_final |>
+  spread_draws(b_dietulva, b_dietwakame) |>
+  mutate(
+    ulva   = (exp(b_dietulva)   - 1) * 100,
+    wakame = (exp(b_dietwakame) - 1) * 100
+  ) |>
+  select(.draw, ulva, wakame) |>
+  pivot_longer(c(ulva, wakame), names_to = "diet", values_to = "pct_growth") |>
+  mutate(diet = factor(diet, levels = c("ulva", "wakame")))
+
+p_effects <- ggplot(draws_diet, aes(x = pct_growth, y = diet, fill = diet)) +
+  geom_vline(xintercept = 0, colour = "grey40", linewidth = 0.4, linetype = "dashed") +
+  stat_halfeye(
+    .width        = c(0.66, 0.95),
+    point_interval = median_qi,
+    slab_alpha    = 0.75,
+    height        = 0.7
+  ) +
+  scale_fill_manual(values = diet_cols, guide = "none") +
+  scale_y_discrete(labels = c("ulva" = "Ulva", "wakame" = "Wakame")) +
+  labs(
+    x = "Growth effect vs control (%)",
+    y = NULL,
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    panel.grid       = element_blank(),
+    axis.line.x = element_line(color = "black", linewidth = 0.6),
+    axis.line.y = element_line(color = "black", linewidth = 0.6),
+  )
+
+p_effects
+ggsave(here("figures", "p_effects.png"), plot = p_effects, dpi = 300, width = 9, height = 4.2, units = "in")                
+
 ## Check diagnostics
 
 # PP check - density overlay
