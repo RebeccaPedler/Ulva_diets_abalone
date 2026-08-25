@@ -639,9 +639,7 @@ summary(fit_weight_final)
 # Get probabilities 
 posterior_summary_table(fit_weight_final)
 
-### PLOTS FOR FINAL MODEL
-
-## Panel A: posterior densities of the diet coefficients 
+### PLOT FINAL MODEL
 draws_diet <- fit_weight_final |>
   spread_draws(b_dietulva, b_dietwakame) |>
   mutate(
@@ -661,20 +659,22 @@ p_effects <- ggplot(draws_diet, aes(x = pct_growth, y = diet, fill = diet)) +
     height        = 0.7
   ) +
   scale_fill_manual(values = diet_cols, guide = "none") +
-  scale_y_discrete(labels = c("ulva" = "Ulva", "wakame" = "Wakame")) +
+  scale_y_discrete(
+    labels = function(x) parse(text = ifelse(x == "ulva", "italic('Ulva')", "'Wakame'"))
+  ) +
   labs(
     x = "Growth effect vs control (%)",
     y = NULL,
   ) +
   theme_minimal(base_size = 11) +
   theme(
-    panel.grid       = element_blank(),
+    panel.grid  = element_blank(),
     axis.line.x = element_line(color = "black", linewidth = 0.6),
-    axis.line.y = element_line(color = "black", linewidth = 0.6),
+    axis.line.y = element_line(color = "black", linewidth = 0.6)
   )
 
 p_effects
-ggsave(here("figures", "p_effects.png"), plot = p_effects, dpi = 300, width = 9, height = 4.2, units = "in")                
+ggsave(here("figures", "p_effects.png"), plot = p_effects, dpi = 300, width = 9, height = 6, units = "in")
 
 ## Check diagnostics
 
