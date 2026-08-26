@@ -876,30 +876,6 @@ c(median = median(icc_hier),
   lower  = quantile(icc_hier, .025),
   upper  = quantile(icc_hier, .975))
 
-# Fit additional model not accounting for per_capita_feed (e.g. simulating the optimisitic growth ceiling for economic analysis if 
-# set feed rates had been applied to tanks
-## Continue with model including start_ABW as the final and with more iterations
-
-if (refit) {
-  fit_weight_final_unadjusted <- brm(
-    formula  = mean_log_weight ~ diet + start_ABW_z, 
-    data     = tank_df,
-    family   = gaussian(),
-    prior    = priors_logwt,
-    chains   = 4,
-    cores    = 4,
-    iter     = 4000,
-    warmup   = 2000,
-    seed     = 42,
-    control  = list(adapt_delta = 0.95)
-  )
-  saveRDS(fit_weight_final_unadjusted, here("models", "fit_weight_final_unadjusted.rds"))
-} else {
-  fit_weight_final_unadjusted <- readRDS(here("models", "fit_weight_final_unadjusted.rds"))
-}
-
-summary(fit_weight_final_unadjusted)
-
 ## NEXT: Run economic_modelling.R
 
 ### END OF SCRIPT ###
