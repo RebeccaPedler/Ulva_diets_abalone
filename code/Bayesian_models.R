@@ -1,6 +1,3 @@
-setwd("C:/Users/RebeccaPedler/Documents/Ulva_diets_abalone")
-library(here)
-
 # Project: A probabilistic cost–benefit analysis of macroalgal dietary supplementation in commercial greenlip abalone (Haliotis laevigata) aquaculture
 
 ## Step 1: Running Bayesion models
