@@ -42,7 +42,9 @@ df_raw <- df_raw |>
     tank       = factor(tank),
     diet       = factor(diet, levels = c("control", "ulva", "wakame")),
     log_weight = log(weight_g)
-  )
+  ) |>
+  filter(
+    tank      != "E01")
 
 # Filter biologically implausible values (segmentation artefacts)
 df_econ <- df_raw |>
