@@ -1,7 +1,0 @@
-"target_g","days_saved_median","total_cost_ctrl","be_meal_median","be_meal_lo95","be_meal_hi95","net_saving_median","p_saving_gt0","model"
-80,26,2.2136,8.9,4.2,13.96,0.0207,0.629,"primary_model"
-90,28.2,2.4337,8.49,4.06,13.26,0.0095,0.555,"primary_model"
-100,30.2,2.638,8.14,3.94,12.67,-0.0032,0.484,"primary_model"
-110,32,2.8293,7.84,3.83,12.16,-0.0173,0.414,"primary_model"
-120,33.6,3.0101,7.58,3.74,11.72,-0.0324,0.349,"primary_model"
-130,35.1,3.1819,7.35,3.66,11.33,-0.0484,0.301,"primary_model"
