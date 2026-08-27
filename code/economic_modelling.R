@@ -53,8 +53,7 @@ df_econ <- df_raw |>
     weight_g <= 150
   )
  
-cat(sprintf("Rows removed by filter: %d (%d remaining)\n",
-            nrow(df_raw) - nrow(df_econ), nrow(df_econ)))
+cat(sprintf("Rows removed by filter: %d (%d remaining)\n", nrow(df_raw) - nrow(df_econ), nrow(df_econ)))
  
 ### TANK-LEVEL AGGREGATION
  
@@ -82,32 +81,18 @@ tank_df |>
   as.data.frame() |>
   print(row.names = FALSE)
  
-### ECONOMIC INPUTS
-## All prices AUD. Feed quantities converted to kg where relevant.
+### ECONOMIC INPUTS (all prices in AUD)
  
 ulva_diet_price <-  3.78   # $/kg finished Ulva diet
 ctrl_diet_price <-  2.47   # $/kg finished control diet
-ulva_meal_price <-  8.22   # $/kg Ulva meal (the key negotiable lever)
+ulva_meal_price <-  8.22   # $/kg Ulva meal 
 ulva_inclusion  <-  0.20   # Ulva meal inclusion rate (20%)
-TARGET_G        <- 90.0    # target harvest weight for SGR analysis (g, whole animal)
-DAYS            <- 131     # trial duration (days)
-FEED_RATE       <- 0.015   # feed rate of 1.5% of bodyweight/day
+TARGET_G        <-  90.0   # target harvest weight of abalone 
+DAYS            <-  131    # trial duration (days)
+FEED_RATE       <-  0.015  # feed rate accross trial period
 
-## Koegh et al. FRDC national abalone farm operating cost breakdown (Table 5.20, n = 7 farms).
-## Used in Part C to convert "days saved" into a dollar value: in a cost-neutral farming operation e.g. where farmgate price and operating cost are the same figure
- 
-opex_shares <- c(
-  admin       = 0.300,   # Administration/overheads
-  staff       = 0.280,   # Staff costs
-  feed        = 0.200,   # Feed
-  electricity = 0.160,   # Electricity
-  fuel_offroad = 0.057,  # Off-road fuel
-  fuel_onroad  = 0.003   # On-road fuel
-)
-stopifnot(abs(sum(opex_shares) - 1) < 1e-8)
- 
 ## Create range for feed's share of total opex (used in sensitivity analysis in Part D)
-feed_share_ref  <- opex_shares[["feed"]]                     # 0.20 (FRDC baseline)
+feed_share_ref  <- 0.20 # Assumes that on average, feed will account for 0.20 of OPEX
 feed_share_grid <- c(0.10, 0.15, 0.20, 0.25, 0.30)
  
 ## Diet premium: extra cost per kg of feed to use the Ulva diet
@@ -310,29 +295,16 @@ summarise_sgr_economics <- function(b, label) {
     be_diet_hi95           = round(quantile(be_d, 0.975), 3)
   )
 }
- 
+
+# Print summary
 sgr_summary <- summarise_sgr_economics(b_growth, "primary_model")
- 
 print(as.data.frame(sgr_summary), row.names = FALSE)
- 
-# Consolidated summary
-cat(sprintf("  [primary_model]\n"))
-cat(sprintf("    SGR advantage:     median %+.5f %%/day\n", sgr_summary$sgr_adv_median_pct_day))
-cat(sprintf("    Days saved:        median %.1f  (95%% CrI %.1f to %.1f)  P(>0) = %.3f\n",
-            sgr_summary$days_saved_median, sgr_summary$days_saved_lo95, sgr_summary$days_saved_hi95,
-            sgr_summary$p_days_saved_gt0))
-cat(sprintf("    Net cost saving:   median $%+.4f  (95%% CrI $%+.4f to $%+.4f)  P(>0) = %.3f\n",
-            sgr_summary$net_saving_median, sgr_summary$net_saving_lo95, sgr_summary$net_saving_hi95,
-            sgr_summary$p_saving_gt0))
-cat(sprintf("    Break-even meal:   median $%.2f/kg  (95%% CrI $%.2f to $%.2f)\n",
-            sgr_summary$be_meal_median, sgr_summary$be_meal_lo95, sgr_summary$be_meal_hi95))
-cat(sprintf("    Break-even diet:   median $%.3f/kg  (95%% CrI $%.3f to $%.3f)\n\n",
-            sgr_summary$be_diet_median, sgr_summary$be_diet_lo95, sgr_summary$be_diet_hi95))
  
 ## PART C2: PROBABILITY-OF-POSITIVE-SAVING CURVE (across Ulva meal price, 90g target)
  
 meal_grid_sgr <- seq(0, 20, by = 0.25)
- 
+
+# Create dataframe for plotting
 prob_saving_curve <- function(b, label) {
   tibble(meal_price = meal_grid_sgr) |>
     rowwise() |>
@@ -345,18 +317,8 @@ prob_saving_curve <- function(b, label) {
 }
  
 saving_curve_df <- prob_saving_curve(b_growth, "primary_model")
- 
-# Highest meal price where probability of being profitable is 95%
-thresh <- saving_curve_df |>
-  summarise(
-    price_above_95 = {
-      vals <- meal_price[p_saving_pos >= 0.95]
-      if (length(vals) == 0) NA_real_ else max(vals)
-    }
-  )
- 
-print(as.data.frame(thresh), row.names = FALSE)
- 
+
+# Plot saving curve
 p_saving_curve <- ggplot(saving_curve_df,
                          aes(x = meal_price, y = p_saving_pos)) +
   geom_vline(xintercept = ulva_meal_price,
@@ -370,21 +332,43 @@ p_saving_curve <- ggplot(saving_curve_df,
            x      = ulva_meal_price,
            y      = 0.12,
            label  = sprintf("Actual meal\nprice $%.2f/kg", ulva_meal_price),
-           hjust  = -1,
+           hjust  = -2,
            vjust  = 0,
            size   = 3,
            colour = "#993C1D") +
   scale_x_continuous(labels = dollar_format(), breaks = seq(0, 20, 2)) +
   scale_y_continuous(labels = percent_format(), limits = c(0, 1)) +
   labs(
-    x     = "Ulva meal price ($/kg)",
+    x     = "*Ulva* meal price ($/kg)",
     y     = "P(total cost saving > 0)",
     title = ""
   ) +
-  theme_ulva()
+  theme_ulva() +
+  theme(
+    axis.title.x = ggtext::element_markdown()
+  )
  
 print(p_saving_curve)
 ggsave(here("figures", "p_sgr_saving_by_meal_price.png"), plot = p_saving_curve, dpi = 300, width = 9, height = 6, units = "in")
+
+# Create tables with highest meal price at which probability of being profitable = 10% to 90% in 10-point steps, then 95% and 99%
+confidence_levels <- c(seq(0.10, 0.90, by = 0.10), 0.95, 0.99)
+
+max_price_at_confidence <- function(level, df = saving_curve_df) {
+  vals <- df$meal_price[df$p_saving_pos >= level]
+  if (length(vals) == 0) NA_real_ else max(vals)
+}
+
+thresh <- tibble(
+  confidence_level = confidence_levels,
+  max_meal_price    = sapply(confidence_levels, max_price_at_confidence)
+) |>
+  mutate(
+    max_meal_price = round(max_meal_price, 2)
+  ) |>
+  select(confidence_level, max_meal_price)
+
+print(as.data.frame(thresh), row.names = FALSE)
  
 ### PART C2: POSTERIOR DISTRIBUTION OF DAYS SAVED
  
@@ -412,10 +396,7 @@ p_days <- ggplot(days_df, aes(x = days_saved)) +
 print(p_days)
 ggsave(here("figures", "p_days_saved.png"), plot = p_days, dpi = 300, width = 9, height = 6, units = "in")
  
-### PART D — SENSITIVITY TO HARVEST TARGET WEIGHT
- 
-## Question: How does the (opex-weighted) break-even Ulva meal price shift across a range of harvest target weights
- 
+### PART D — SENSITIVITY TO HARVEST TARGET WEIGHT 
 harvest_grid <- seq(80, 130, by = 10)
  
 ## Summary for Part D: break-even meal price and profitability at the actual Ulva meal price ($8.22/kg)
@@ -502,6 +483,7 @@ print(tables_primary$p95, row.names = FALSE)
 write.csv(premium_df,                here("outputs", "ulva_premium_curve.csv"),            row.names = FALSE)
 write.csv(sgr_summary,               here("outputs", "ulva_sgr_economic_summary.csv"),     row.names = FALSE)
 write.csv(saving_curve_df,           here("outputs", "ulva_sgr_saving_curve.csv"),         row.names = FALSE)
+write.csv(thresh,                    here("outputs", "probability_break_evens.csv"),       row.names = FALSE)
 write.csv(harvest_sensitivity_df,    here("outputs", "ulva_harvest_sensitivity.csv"),      row.names = FALSE)
 write.csv(tables_primary$breakeven,  here("outputs", "ulva_breakeven_by_opexshare.csv"),   row.names = FALSE)
 write.csv(tables_primary$p95,        here("outputs", "ulva_p95_by_opexshare.csv"),         row.names = FALSE)
