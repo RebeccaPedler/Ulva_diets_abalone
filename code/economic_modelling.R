@@ -83,30 +83,22 @@ tank_df |>
  
 ### ECONOMIC INPUTS (all prices in AUD)
  
-ulva_diet_price <-  3.78   # $/kg finished Ulva diet
-ctrl_diet_price <-  2.47   # $/kg finished control diet
-ulva_meal_price <-  8.22   # $/kg Ulva meal 
-ulva_inclusion  <-  0.20   # Ulva meal inclusion rate (20%)
-TARGET_G        <-  90.0   # target harvest weight of abalone 
-DAYS            <-  131    # trial duration (days)
-FEED_RATE       <-  0.015  # feed rate accross trial period
+ulva_diet_price  <-  3.78   # $/kg finished Ulva diet
+waka_diet_price  <-  3.72   # $/kg finished wakame diet
+ctrl_diet_price  <-  2.47   # $/kg finished control diet
+ulva_meal_price  <-  8.22   # $/kg Ulva meal
+waka_meal_price  <-  7.88  # $/kg wakame meal  
+inclusion        <-  0.20   # inclusion level of both wakame and Ulva 
+TARGET_G         <-  90.0   # target harvest weight of abalone 
+DAYS             <-  131    # trial duration (days)
+FEED_RATE        <-  0.015  # feed rate accross trial period
 
 ## Create range for feed's share of total opex (used in sensitivity analysis in Part D)
 feed_share_ref  <- 0.20 # Assumes that on average, feed will account for 0.20 of OPEX
 feed_share_grid <- c(0.10, 0.15, 0.20, 0.25, 0.30)
  
-## Diet premium: extra cost per kg of feed to use the Ulva diet
-diet_premium <- ulva_diet_price - ctrl_diet_price   # $1.31/kg
- 
-## Back out the cost of the ingredient Ulva meal displaces.
-## diet_premium = inclusion × (meal_price − displaced_cost)→ displaced_cost = meal_price − diet_premium / inclusion
-displaced_cost <- ulva_meal_price - diet_premium / ulva_inclusion
- 
-cat(sprintf("\n  Diet premium at current prices:    $%.2f/kg feed\n", diet_premium))
-cat(sprintf("  Implied displaced ingredient cost: $%.2f/kg meal\n", displaced_cost))
- 
-### GROWTH MODEL
- 
+### GROWTH INPUTS FROM BAYESIAN MODELS
+
 ## Primary model: diet + per_capita_feed_z + start_ABW_z
 ## Adjusting for per-capita feed removes the feed-availability confound
 fit_model <- readRDS(here("models", "fit_weight_final.rds"))
@@ -141,57 +133,89 @@ ctrl_sgr <- (log(ctrl_Wf) - log(W0_ref)) / DAYS   # per day, natural log scale
  
 cat(sprintf("\n  Common starting weight (control grand mean):  %.2f g\n", W0_ref))
 cat(sprintf("  Control SGR: %.4f %%/day\n", ctrl_sgr * 100))
- 
-### PART B: DIET PREMIUM AS A FUNCTION OF ULVA MEAL PRICE
-## Question: How does diet premium scale with price of raw Ulva meal?
-meal_grid_fw <- seq(0, 60, by = 0.5)
- 
-premium_from_meal <- function(meal_price) {
-  ulva_inclusion * (meal_price - displaced_cost)
+
+### PART A: DIET PREMIUM AS A FUNCTION OF ULVA AND WAKAME MEAL PRICE
+
+## Premium for each algal meal
+diet_premium_ulva <- ulva_diet_price - ctrl_diet_price   # $1.31/kg
+diet_premium_waka <- waka_diet_price - ctrl_diet_price   # $1.25/kg
+
+## Back out the cost of the ingredient each meal displaces
+displaced_cost_ulva <- ulva_meal_price - diet_premium_ulva / inclusion
+displaced_cost_waka <- waka_meal_price - diet_premium_waka / inclusion
+
+# Print premiums for:
+
+# Ulva
+cat(sprintf("\n  Ulva diet premium at current prices:    $%.2f/kg feed\n", diet_premium_ulva))
+cat(sprintf("  Ulva implied displaced ingredient cost: $%.2f/kg meal\n", displaced_cost_ulva))
+
+# Wakame
+cat(sprintf("\n  Wakame diet premium at current prices:    $%.2f/kg feed\n", diet_premium_waka))
+cat(sprintf("  Wakame implied displaced ingredient cost: $%.2f/kg meal\n", displaced_cost_waka))
+
+# Create grid and function
+meal_grid_fw <- seq(0, 20, by = 0.5)
+
+premium_from_meal <- function(meal_price, inclusion, displaced) {
+  inclusion * (meal_price - displaced)
 }
- 
-premium_per_dollar <- ulva_inclusion
- 
-cat(sprintf("\n  Each $1/kg rise in Ulva meal price adds $%.2f/kg to the diet premium\n", premium_per_dollar))
-cat(sprintf("  At actual meal price ($%.2f/kg): diet premium = $%.2f/kg feed\n", ulva_meal_price, premium_from_meal(ulva_meal_price)))
- 
-premium_df <- tibble(meal_price = meal_grid_fw) |>
-  mutate(
-    diet_premium   = premium_from_meal(meal_price),
-    ulva_diet_cost = ctrl_diet_price + diet_premium
-  )
- 
+
+# Create premium dataframe
+premium_df <- bind_rows(
+  tibble(meal_price = meal_grid_fw, meal = "ulva") |>
+    mutate(
+      diet_premium = premium_from_meal(meal_price, inclusion, displaced_cost_ulva),
+      diet_cost    = ctrl_diet_price + diet_premium
+    ),
+  tibble(meal_price = meal_grid_fw, meal = "wakame") |>
+    mutate(
+      diet_premium = premium_from_meal(meal_price, inclusion, displaced_cost_waka),
+      diet_cost    = ctrl_diet_price + diet_premium
+    )
+)
+
 # Readable subset
 premium_df |>
   filter(meal_price %in% seq(0, 60, by = 10)) |>
   mutate(across(where(is.numeric), ~ round(.x, 2))) |>
   as.data.frame() |>
   print(row.names = FALSE)
- 
-p_premium <- ggplot(premium_df, aes(x = meal_price, y = diet_premium)) +
-  geom_vline(xintercept = ulva_meal_price,
-             colour = "#993C1D", linewidth = 0.5) +
+
+# Set colour palette and make data frame
+seaweed_cols <- c("ulva" = "#6DAA6E", "wakame" = "#C4845A")
+actual_price_df <- tibble(
+  meal  = c("ulva", "wakame"),
+  price = c(ulva_meal_price, waka_meal_price)
+)
+
+# Print plot
+p_premium <- ggplot(premium_df, aes(x = meal_price, y = diet_premium, colour = meal)) +
+  geom_vline(data = actual_price_df, aes(xintercept = price, colour = meal),
+             linewidth = 0.5, linetype = "dashed", show.legend = FALSE) +
   geom_hline(yintercept = 0,
              colour = "grey70", linewidth = 0.3) +
-  geom_line(linewidth = 1, colour = "#0F6E56") +
-  annotate("text",
-           x = ulva_meal_price + 1, y = min(premium_df$diet_premium),
-           label = sprintf("Actual meal\nprice $%.2f/kg", ulva_meal_price),
-           hjust = 0, vjust = 0, size = 3, colour = "#993C1D") +
-  scale_x_continuous(labels = dollar_format()) +
-  scale_y_continuous(labels = dollar_format()) +
+  geom_line(linewidth = 1) +
+  scale_colour_manual(
+    values = seaweed_cols,
+    labels = c("ulva" = "*Ulva*", "wakame" = "Wakame"),
+    name   = "Algal meal"
+  ) +
+  scale_x_continuous(labels = dollar_format(accuracy = 0.01)) +
+  scale_y_continuous(labels = dollar_format(accuracy = 0.01)) +
   labs(
-    x        = "*Ulva* meal price ($/kg)",
-    y        = "Diet premium over control ($/kg feed)"
+    x = "Algal meal price ($/kg)",
+    y = "Diet premium over control ($AUD/kg feed)"
   ) +
   theme_ulva() +
-    theme(
-    axis.title.x = ggtext::element_markdown())
- 
+  theme(
+    legend.text = ggtext::element_markdown()
+  )
+
 print(p_premium)
 ggsave(here("figures", "p_premium.png"), plot = p_premium, dpi = 300, width = 8, height = 5, units = "in")
- 
-### PART C1: TIME-TO-HARVEST BREAK-EVEN USING SGR (OPEX-WEIGHTED)
+
+### PART B: TIME-TO-HARVEST BREAK-EVEN USING SGR (OPEX-WEIGHTED)
  
 # Ulva final weight per posterior draw, projected from the common baseline W0_ref
 ulva_Wf <- function(b) ctrl_Wf * exp(b)
@@ -231,7 +255,7 @@ total_cost_ctrl_at <- function(target_g = TARGET_G, feed_share = feed_share_ref)
  
 # Ulva diet price implied by a given Ulva meal price (fixed inclusion rate)
 ulva_diet_from_meal <- function(meal_price) {
-  ctrl_diet_price + ulva_inclusion * (meal_price - displaced_cost)
+  ctrl_diet_price + inclusion * (meal_price - displaced_cost)
 }
  
 # Ulva total cost (feed + non-feed opex) to reach target
@@ -255,7 +279,7 @@ be_diet_price <- function(b, target_g = TARGET_G, feed_share = feed_share_ref) {
  
 # Break-even Ulva meal price: backed out from the diet price break-even
 be_meal_price <- function(b, target_g = TARGET_G, feed_share = feed_share_ref) {
-  displaced_cost + (be_diet_price(b, target_g, feed_share) - ctrl_diet_price) / ulva_inclusion
+  displaced_cost + (be_diet_price(b, target_g, feed_share) - ctrl_diet_price) / inclusion
 }
  
 ## Common starting weight and control SGR from the trial
@@ -480,7 +504,7 @@ print(tables_primary$breakeven, row.names = FALSE)
 print(tables_primary$p95, row.names = FALSE)
  
 ### EXPORT ALL DATA AS CSV
-write.csv(premium_df,                here("outputs", "ulva_premium_curve.csv"),            row.names = FALSE)
+write.csv(premium_df,                here("outputs", "ulva_wakame_premium_curve.csv"), row.names = FALSE)
 write.csv(sgr_summary,               here("outputs", "ulva_sgr_economic_summary.csv"),     row.names = FALSE)
 write.csv(saving_curve_df,           here("outputs", "ulva_sgr_saving_curve.csv"),         row.names = FALSE)
 write.csv(thresh,                    here("outputs", "probability_break_evens.csv"),       row.names = FALSE)
