@@ -182,27 +182,29 @@ premium_df |>
   as.data.frame() |>
   print(row.names = FALSE)
 
-# Set colour palette and make data frame
-seaweed_cols <- c("ulva" = "#6DAA6E", "wakame" = "#C4845A")
+meal_cols <- c("ulva" = "#6DAA6E", "wakame" = "#C4845A")
 actual_price_df <- tibble(
   meal  = c("ulva", "wakame"),
   price = c(ulva_meal_price, waka_meal_price)
 )
 
 # Print plot
-p_premium <- ggplot(premium_df, aes(x = meal_price, y = diet_premium, colour = meal)) +
+p_premium <- ggplot(premium_df, aes(x = meal_price, y = diet_premium)) +
   geom_vline(data = actual_price_df, aes(xintercept = price, colour = meal),
-             linewidth = 0.5, linetype = "dashed", show.legend = FALSE) +
+             linewidth = 0.8, linetype = "dashed", show.legend = TRUE) +
   geom_hline(yintercept = 0,
-             colour = "grey70", linewidth = 0.3) +
-  geom_line(linewidth = 1) +
+             colour = "grey70", linewidth = 0.8) +
+  geom_line(colour = "black", linewidth = 0.8) +
   scale_colour_manual(
-    values = seaweed_cols,
+    values = meal_cols,
     labels = c("ulva" = "*Ulva*", "wakame" = "Wakame"),
     name   = "Algal meal"
   ) +
+  scale_y_continuous(
+    breaks = scales::breaks_width(0.5),
+    labels = dollar_format(accuracy = 0.01)
+  ) +
   scale_x_continuous(labels = dollar_format(accuracy = 0.01)) +
-  scale_y_continuous(labels = dollar_format(accuracy = 0.01)) +
   labs(
     x = "Algal meal price ($/kg)",
     y = "Diet premium over control ($AUD/kg feed)"
@@ -255,7 +257,7 @@ total_cost_ctrl_at <- function(target_g = TARGET_G, feed_share = feed_share_ref)
  
 # Ulva diet price implied by a given Ulva meal price (fixed inclusion rate)
 ulva_diet_from_meal <- function(meal_price) {
-  ctrl_diet_price + inclusion * (meal_price - displaced_cost)
+  ctrl_diet_price + inclusion * (meal_price - displaced_cost_ulva)
 }
  
 # Ulva total cost (feed + non-feed opex) to reach target
@@ -279,7 +281,7 @@ be_diet_price <- function(b, target_g = TARGET_G, feed_share = feed_share_ref) {
  
 # Break-even Ulva meal price: backed out from the diet price break-even
 be_meal_price <- function(b, target_g = TARGET_G, feed_share = feed_share_ref) {
-  displaced_cost + (be_diet_price(b, target_g, feed_share) - ctrl_diet_price) / inclusion
+  displaced_cost_ulva + (be_diet_price(b, target_g, feed_share) - ctrl_diet_price) / inclusion
 }
  
 ## Common starting weight and control SGR from the trial
@@ -346,11 +348,11 @@ saving_curve_df <- prob_saving_curve(b_growth, "primary_model")
 p_saving_curve <- ggplot(saving_curve_df,
                          aes(x = meal_price, y = p_saving_pos)) +
   geom_vline(xintercept = ulva_meal_price,
-             colour = "#993C1D", linewidth = 0.5) +
+             colour = "#993C1D", linewidth = 0.8) +
   geom_hline(yintercept = 0.95,
-             colour = "grey70", linewidth = 0.3, linetype = "dotted") +
+             colour = "grey70", linewidth = 0.8, linetype = "dotted") +
   geom_hline(yintercept = 0.50,
-             colour = "grey70", linewidth = 0.3, linetype = "dotted") +
+             colour = "grey70", linewidth = 0.8, linetype = "dotted") +
   geom_line(linewidth = 1, colour = model_col) +
   annotate("text",
            x      = ulva_meal_price,
@@ -394,7 +396,7 @@ thresh <- tibble(
 
 print(as.data.frame(thresh), row.names = FALSE)
  
-### PART C2: POSTERIOR DISTRIBUTION OF DAYS SAVED
+### PART C: POSTERIOR DISTRIBUTION OF DAYS SAVED
  
 days_df <- tibble(days_saved = days_saved(b_growth))
  
@@ -421,95 +423,84 @@ print(p_days)
 ggsave(here("figures", "p_days_saved.png"), plot = p_days, dpi = 300, width = 9, height = 6, units = "in")
  
 ### PART D — SENSITIVITY TO HARVEST TARGET WEIGHT 
+
+# Create grid of harvest weights
 harvest_grid <- seq(80, 130, by = 10)
- 
-## Summary for Part D: break-even meal price and profitability at the actual Ulva meal price ($8.22/kg)
-summarise_harvest_sensitivity <- function(b, label) {
-  tibble(target_g = harvest_grid) |>
-    rowwise() |>
-    mutate(
-      days_saved_median = round(median(days_saved(b, target_g)), 1),
-      total_cost_ctrl   = round(total_cost_ctrl_at(target_g), 4),
-      be_meal_median    = round(median(be_meal_price(b, target_g)), 2),
-      be_meal_lo95      = round(quantile(be_meal_price(b, target_g), 0.025), 2),
-      be_meal_hi95      = round(quantile(be_meal_price(b, target_g), 0.975), 2),
-      net_saving_median = round(median(total_cost_saving(b, ulva_meal_price, target_g)), 4),
-      p_saving_gt0      = round(mean(total_cost_saving(b, ulva_meal_price, target_g) > 0), 3)
-    ) |>
-    ungroup() |>
-    mutate(model = label)
-}
- 
-harvest_sensitivity_df <- summarise_harvest_sensitivity(b_growth, "primary_model")
- 
-## Plot: break-even meal price as a function of harvest target weight
-p_harvest <- ggplot(harvest_sensitivity_df,
-                    aes(x = target_g, y = be_meal_median)) +
-  geom_hline(yintercept = ulva_meal_price,
-             colour = "#993C1D", linewidth = 0.5) +
-  geom_ribbon(aes(ymin = be_meal_lo95, ymax = be_meal_hi95),
-              alpha = 0.15, colour = NA, fill = model_col) +
-  geom_line(linewidth = 1, colour = model_col) +
-  scale_x_continuous(breaks = harvest_grid) +
-  scale_y_continuous(labels = dollar_format()) +
-  labs(
-    x        = "Harvest target weight (g)",
-    y        = "Break-even *Ulva* meal price ($/kg)"
-  ) +
-  theme_ulva() +
-  theme(
-    axis.title.y = ggtext::element_markdown()
+
+#
+days_by_target_df <- purrr::map_dfr(harvest_grid, function(tg) {
+  ds <- days_saved(b_growth, tg)
+  tibble(
+    target_g          = tg,
+    days_saved_median = median(ds),
+    days_saved_lo95   = quantile(ds, 0.025),
+    days_saved_hi95   = quantile(ds, 0.975),
+    p_days_saved_gt0  = mean(ds > 0)
   )
+}) |>
+  mutate(across(where(is.numeric), ~ round(.x, c(0, 1, 1, 1, 3)[cur_column() == names(pick(everything()))])))
+
  
-print(p_harvest)
-ggsave(here("figures", "p_harvest_sensitivity.png"), plot = p_harvest, dpi = 300, width = 9, height = 6, units = "in")
- 
-### PART D — BREAK-EVEN AND 95%-PROFITABLE PRICE ACROSS FEED OPEX SHARE x HARVEST WEIGHT
- 
-## Question: how sensitive are the break-even price and the 95% profitable price to feed share of total opex, across a range of harvest weights
- 
+### PART D2 — BREAK-EVEN PRICE AT 50%, 95% AND 99% PROFITABILITY, ACROSS FEED OPEX SHARE x HARVEST WEIGHT
+
+## Question: how sensitive are the 50%, 95%, and 99% confident-profitable prices to feed share of total opex, across a range of harvest weights
+
 # Create grid
 build_price_tables <- function(b, label) {
- 
-  be_median <- matrix(
+
+  be_50 <- matrix(
     NA_real_, nrow = length(feed_share_grid), ncol = length(harvest_grid),
     dimnames = list(sprintf("feed_%.0f%%", feed_share_grid * 100),
                     sprintf("%.0fg", harvest_grid))
   )
-  be_p95 <- be_median
- 
+  be_95 <- be_50
+  be_99 <- be_50
+
   for (i in seq_along(feed_share_grid)) {
     fs <- feed_share_grid[i]
     for (j in seq_along(harvest_grid)) {
       tg <- harvest_grid[j]
       draws <- be_meal_price(b, target_g = tg, feed_share = fs)
-      be_median[i, j] <- round(median(draws), 2)
-      be_p95[i, j]    <- round(quantile(draws, 0.05), 2)
+      be_50[i, j] <- round(quantile(draws, 0.50), 2)  # 50% confident price = median
+      be_95[i, j] <- round(quantile(draws, 0.05), 2)  # 95% confident price
+      be_99[i, j] <- round(quantile(draws, 0.01), 2)  # 99% confident price
     }
   }
- 
+
   list(
-    breakeven = as.data.frame(be_median) |> tibble::rownames_to_column("feed_opex_share"),
-    p95       = as.data.frame(be_p95)    |> tibble::rownames_to_column("feed_opex_share"),
-    model     = label
+    p50   = as.data.frame(be_50) |> tibble::rownames_to_column("feed_opex_share"),
+    p95   = as.data.frame(be_95) |> tibble::rownames_to_column("feed_opex_share"),
+    p99   = as.data.frame(be_99) |> tibble::rownames_to_column("feed_opex_share"),
+    model = label
   )
 }
- 
+
 tables_primary <- build_price_tables(b_growth, "primary_model")
- 
-## BREAK EVEN PRICE
-print(tables_primary$breakeven, row.names = FALSE)
- 
+
+## 50% PROFITABLE PRICE
+print(tables_primary$p50, row.names = FALSE)
+
 ## 95% PROFITABLE PRICE
 print(tables_primary$p95, row.names = FALSE)
+
+## 99% PROFITABLE PRICE
+print(tables_primary$p99, row.names = FALSE)
+
+## Combine p50/p95/p99 into one table
+price_by_confidence_df <- bind_rows(
+  tables_primary$p50 |> mutate(confidence_level = 0.50, .after = feed_opex_share),
+  tables_primary$p95 |> mutate(confidence_level = 0.95, .after = feed_opex_share),
+  tables_primary$p99 |> mutate(confidence_level = 0.99, .after = feed_opex_share)
+)
+
+## Print (replaces your three separate print() calls)
+print(as.data.frame(price_by_confidence_df), row.names = FALSE)
  
 ### EXPORT ALL DATA AS CSV
 write.csv(premium_df,                here("outputs", "ulva_wakame_premium_curve.csv"), row.names = FALSE)
 write.csv(sgr_summary,               here("outputs", "ulva_sgr_economic_summary.csv"),     row.names = FALSE)
 write.csv(saving_curve_df,           here("outputs", "ulva_sgr_saving_curve.csv"),         row.names = FALSE)
 write.csv(thresh,                    here("outputs", "probability_break_evens.csv"),       row.names = FALSE)
-write.csv(harvest_sensitivity_df,    here("outputs", "ulva_harvest_sensitivity.csv"),      row.names = FALSE)
-write.csv(tables_primary$breakeven,  here("outputs", "ulva_breakeven_by_opexshare.csv"),   row.names = FALSE)
-write.csv(tables_primary$p95,        here("outputs", "ulva_p95_by_opexshare.csv"),         row.names = FALSE)
+write.csv(price_by_confidence_df,    here("outputs", "ulva_breakeven_by_confidence.csv"), row.names = FALSE)
  
 ### END OF SCRIPT ###
