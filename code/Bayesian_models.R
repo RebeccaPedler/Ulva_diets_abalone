@@ -5,7 +5,7 @@
 ## Load required packages
 
 ### Install packages
-install.packages(c("tidyverse","brms","ggplot2","patchwork", "bayesplot","tidybayes","posterior","ggcorrplot", "here", "FSA"))
+install.packages(c("tidyverse","brms","ggplot2","patchwork", "bayesplot","tidybayes","posterior","ggcorrplot", "here", "FSA", "scales", "ggtext"))
  
 library(tidyverse)
 library(brms)
@@ -858,7 +858,7 @@ b_hier <- as_draws_df(fit_hier)$b_dietulva
 b_agg  <- as_draws_df(fit_weight_final)$b_dietulva
 
 compare_hier <- tibble(
-  model      = c("Aggregated (tank means, n = 12)", "Hierarchical (individuals + 1|tank)"),
+  model      = c("Aggregated (tank means, n = 11)", "Hierarchical (individuals + 1|tank)"),
   median_log = c(median(b_agg), median(b_hier)),
   lower95    = c(quantile(b_agg, .025), quantile(b_hier, .025)),
   upper95    = c(quantile(b_agg, .975), quantile(b_hier, .975)),
