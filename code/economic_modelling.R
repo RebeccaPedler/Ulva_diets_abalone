@@ -13,7 +13,7 @@ library(ggplot2)
  
 ### CREATE THEMES
  
-# Colour for the single growth model reported here
+# Colour palette
 model_col <- "#0F6E56"
  
 # plot theme
@@ -493,7 +493,7 @@ price_by_confidence_df <- bind_rows(
   tables_primary$p99 |> mutate(confidence_level = 0.99, .after = feed_opex_share)
 )
 
-## Print (replaces your three separate print() calls)
+## Print 
 print(as.data.frame(price_by_confidence_df), row.names = FALSE)
  
 ### EXPORT ALL DATA AS CSV
@@ -504,6 +504,4 @@ write.csv(thresh,                    here("outputs", "probability_break_evens.cs
 write.csv(days_by_target_df,         here("outputs", "days_by_target_df.csv"),             row.names = FALSE)
 write.csv(price_by_confidence_df,    here("outputs", "ulva_breakeven_by_confidence.csv"),  row.names = FALSE)
 
-### END OF SCRIPT ###
- 
 ### END OF SCRIPT ###
