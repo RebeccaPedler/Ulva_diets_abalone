@@ -765,14 +765,11 @@ final_summary_weight <- tibble(
 
 print(final_summary_weight)
 
-## Sensitivity check one - Does the diet effect hold with E04 and E13 removed
-# E04 had highest start_ABW
-# E13 had the highest start count and lowest per_capita_feed
-# Check that Ulva effect is not driven by leverage of covariates
+## Sensitivity check one - Does the diet effect hold with E05 and E06 removed (Pareto K > 0.7)
 
-# Create dataset with E04 and E13 removed
+# Create dataset with E05 and E06 removed
 sensitivity <- tank_df |>
-  filter(!tank %in% c("E04", "E13"))
+  filter(!tank %in% c("E05", "E06"))
 
 # Run model
 
@@ -803,7 +800,7 @@ post_full   <- as_draws_df(fit_weight_final)$b_dietulva
 post_noinfl <- as_draws_df(fit_weight_noinfl)$b_dietulva
 
 compare_tbl <- tibble(
-  model      = c("Full (11 tanks)", "Excl. E04 + E13 (9 tanks)"),
+  model      = c("Full (11 tanks)", "Excl. E05 + E06 (9 tanks)"),
   median_log = c(median(post_full),  median(post_noinfl)),
   lower95    = c(quantile(post_full, .025),  quantile(post_noinfl, .025)),
   upper95    = c(quantile(post_full, .975),  quantile(post_noinfl, .975)),
@@ -858,7 +855,7 @@ b_hier <- as_draws_df(fit_hier)$b_dietulva
 b_agg  <- as_draws_df(fit_weight_final)$b_dietulva
 
 compare_hier <- tibble(
-  model      = c("Aggregated (tank means, n = 11)", "Hierarchical (individuals + 1|tank)"),
+  model      = c("Aggregated (tank means, n = 12)", "Hierarchical (individuals + 1|tank)"),
   median_log = c(median(b_agg), median(b_hier)),
   lower95    = c(quantile(b_agg, .025), quantile(b_hier, .025)),
   upper95    = c(quantile(b_agg, .975), quantile(b_hier, .975)),
