@@ -5,7 +5,7 @@
 ## Load required packages
 
 ### Install packages
-install.packages(c("tidyverse","brms","ggplot2","patchwork", "bayesplot","tidybayes","posterior","ggcorrplot", "here", "FSA", "scales", "ggtext"))
+install.packages(c("tidyverse","brms","ggplot2","patchwork", "bayesplot","tidybayes","posterior","ggcorrplot", "here", "FSA"))
  
 library(tidyverse)
 library(brms)
@@ -24,7 +24,7 @@ library(FSA)
 ## Set refit = FALSE to load previously fitted models from disk
 ## Change to TRUE any time you modify model parameters or data
 
-refit <- FALSE
+refit <- TRUE
 
 ### LOAD DATA
 
@@ -611,11 +611,11 @@ loo_compare(
 
 # Results are robust accross sensitivity analyses and regardless of prior choice
 
-## Continue with model including start_ABW as the final and with more iterations
+## Continue with final model and with more iterations
 
 if (refit) {
   fit_weight_final <- brm(
-    formula  = mean_log_weight ~ diet + per_capita_feed_z + start_ABW_z, 
+    formula  = mean_log_weight ~ diet + per_capita_feed_z, 
     data     = tank_df,
     family   = gaussian(),
     prior    = priors_logwt,
@@ -765,11 +765,11 @@ final_summary_weight <- tibble(
 
 print(final_summary_weight)
 
-## Sensitivity check one - Does the diet effect hold with E05 and E06 removed (Pareto K > 0.7)
+## Sensitivity check one - Does the diet effect hold with E02 removed (Pareto K > 0.7)
 
-# Create dataset with E05 and E06 removed
+# Create dataset with E02 removed
 sensitivity <- tank_df |>
-  filter(!tank %in% c("E05", "E06"))
+  filter(!tank %in% c("E02"))
 
 # Run model
 
@@ -800,7 +800,7 @@ post_full   <- as_draws_df(fit_weight_final)$b_dietulva
 post_noinfl <- as_draws_df(fit_weight_noinfl)$b_dietulva
 
 compare_tbl <- tibble(
-  model      = c("Full (11 tanks)", "Excl. E05 + E06 (9 tanks)"),
+  model      = c("Full (11 tanks)", "Excl. E02 (10 tanks)"),
   median_log = c(median(post_full),  median(post_noinfl)),
   lower95    = c(quantile(post_full, .025),  quantile(post_noinfl, .025)),
   upper95    = c(quantile(post_full, .975),  quantile(post_noinfl, .975)),
@@ -812,7 +812,7 @@ compare_tbl <- tibble(
 
 print(as.data.frame(compare_tbl), row.names = FALSE)
 
-# Ulva effect unchanged - growth benefit holds up
+# Ulva effect increases slightly - growth benefit holds up
 
 ## Additional sensitivity test 
 # Individual-level heirarchical model with tank random effect - does Ulva effect hold up?
