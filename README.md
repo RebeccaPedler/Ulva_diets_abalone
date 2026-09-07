@@ -51,7 +51,7 @@ R script for inspecting, cleaning, and running Bayesian models on abalone weight
 
 ### `economic_modelling.R`
 
-R script for building break-even Ulva meal price distributions, and a probability-of-profit curve across a range of Ulva meal prices, using the primary growth model (`fit_weight_final.rds`, adjusted for per-capita feed and starting weight). This script loads the pre-fitted model from `models/`, so `Bayesian_models.R` must be run first (with `refit <- TRUE`) to generate a complete set of `.rds` files before this script will run.
+R script for building break-even Ulva meal price distributions, and a probability-of-profit curve across a range of Ulva meal prices, using the primary growth model (`fit_weight_final.rds`, adjusted for per-capita feed). This script loads the pre-fitted model from `models/`, so `Bayesian_models.R` must be run first (with `refit <- TRUE`) to generate a complete set of `.rds` files before this script will run.
 
 ---
 
