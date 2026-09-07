@@ -99,7 +99,7 @@ feed_share_grid <- c(0.10, 0.15, 0.20, 0.25, 0.30)
  
 ### GROWTH INPUTS FROM BAYESIAN MODELS
 
-## Primary model: diet + per_capita_feed_z + start_ABW_z
+## Primary model: diet + per_capita_feed_z
 ## Adjusting for per-capita feed removes the feed-availability confound
 fit_model <- readRDS(here("models", "fit_weight_final.rds"))
 summary(fit_model)
