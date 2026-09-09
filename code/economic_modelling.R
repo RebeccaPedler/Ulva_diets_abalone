@@ -433,10 +433,11 @@ p_days <- ggplot(days_df, aes(x = days_saved)) +
   )
  
 print(p_days)
-ggsave(here("figures", "p_days_saved.png"), plot = p_days, dpi = 300, width = 9, height = 6, units = "in")
+
+ggsave(here("figures", "p_combined.png"), plot = p_combined, dpi = 300, width = 8, height = 14, units = "in")
 
 # Combine plots
-p_combined <- p_days + p_saving_curve +
+p_combined <- p_days / p_saving_curve +
   plot_annotation(tag_levels = "A", tag_suffix = ")") &
   theme(plot.tag = element_text(face = "bold"))
 
