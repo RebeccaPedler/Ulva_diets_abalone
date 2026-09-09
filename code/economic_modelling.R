@@ -348,20 +348,22 @@ saving_curve_df <- prob_saving_curve(b_growth, "primary_model")
 p_saving_curve <- ggplot(saving_curve_df,
                          aes(x = meal_price, y = p_saving_pos)) +
   geom_vline(xintercept = ulva_meal_price,
-             colour = "#993C1D", linewidth = 0.8) +
+             colour = "black", linewidth = 0.8, linetype = "dashed") +
   geom_hline(yintercept = 0.95,
-             colour = "grey70", linewidth = 0.8, linetype = "dotted") +
+             colour = "grey20", linewidth = 0.8, linetype = "dotted") +
   geom_hline(yintercept = 0.50,
-             colour = "grey70", linewidth = 0.8, linetype = "dotted") +
-  geom_line(linewidth = 1, colour = model_col) +
-  annotate("text",
-           x      = ulva_meal_price,
-           y      = 0.12,
-           label  = sprintf("Actual meal\nprice $%.2f/kg", ulva_meal_price),
-           hjust  = -2,
-           vjust  = 0,
-           size   = 3,
-           colour = "#993C1D") +
+             colour = "grey20", linewidth = 0.8, linetype = "dotted") +
+  geom_line(linewidth = 1, colour = "black") +
+  annotate("richtext",
+         x           = ulva_meal_price,
+         y           = 0.20,
+         label       = sprintf("Actual *Ulva* meal<br>price $%.2f/kg", ulva_meal_price),
+         hjust       = 1.0,
+         vjust       = 0,
+         size        = 4,
+         colour      = "black",
+         fill        = NA,
+         label.color = NA) +
   scale_x_continuous(labels = dollar_format(), breaks = seq(0, 20, 2)) +
   scale_y_continuous(labels = percent_format(), limits = c(0, 1)) +
   labs(
@@ -371,11 +373,12 @@ p_saving_curve <- ggplot(saving_curve_df,
   ) +
   theme_ulva() +
   theme(
-    axis.title.x = ggtext::element_markdown(),
-    axis.ticks.length = unit(0.15, "cm"),
-    axis.text.x = element_text(margin = margin(t = 8)),
-    axis.text.y = element_text(margin = margin(r = 8))
-  )
+  axis.title.x = ggtext::element_markdown(size = 12),
+  axis.ticks.length = unit(0.15, "cm"),
+  axis.text.x = element_text(margin = margin(t = 8)),
+  axis.text.y = element_text(margin = margin(r = 8)),
+  axis.title.y = element_text(size = 12)
+)
  
 print(p_saving_curve)
 ggsave(here("figures", "p_sgr_saving_by_meal_price.png"), plot = p_saving_curve, dpi = 300, width = 9, height = 6, units = "in")
@@ -399,7 +402,7 @@ thresh <- tibble(
 
 print(as.data.frame(thresh), row.names = FALSE)
  
-### PART C: POSTERIOR DISTRIBUTION OF DAYS SAVED
+### PART C2: POSTERIOR DISTRIBUTION OF DAYS SAVED
  
 days_df <- tibble(days_saved = days_saved(b_growth))
  
@@ -407,13 +410,13 @@ p_days <- ggplot(days_df, aes(x = days_saved)) +
   geom_histogram(aes(y = after_stat(density)),
                  bins      = 60,
                  alpha     = 0.5,
-                 fill      = model_col,
-                 colour    = model_col,
+                 fill      = "grey20",
+                 colour    = "grey20",
                  linewidth = 0.2) +
-  geom_density(alpha = 0, colour = model_col, linewidth = 0.8) +
+  geom_density(alpha = 0, colour = "black", linewidth = 0.8) +
   geom_vline(
     xintercept = median(days_df$days_saved),
-    colour = model_col, linewidth = 0.7, linetype = "dashed"
+    colour = "black", linewidth = 1.0, linetype = "dashed"
   ) +
   scale_x_continuous(limits = c(-50, 125), breaks = seq(-50, 125, 25)) +
   labs(
@@ -424,7 +427,9 @@ p_days <- ggplot(days_df, aes(x = days_saved)) +
   theme(
     axis.ticks.length = unit(0.15, "cm"),
     axis.text.x = element_text(margin = margin(t = 8)),
-    axis.text.y = element_text(margin = margin(r = 8))
+    axis.text.y = element_text(margin = margin(r = 8)),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12)
   )
  
 print(p_days)
@@ -548,12 +553,12 @@ print(p_days_sens)
 ggsave(here("figures", "p_days_saved_by_target_sensitivity.png"), plot = p_days_sens, dpi = 300, width = 9, height = 6, units = "in")
 
 # Patch plots together 
-p_combined_sens <- p_days_sens + p_saving_curve_sens +
+p_combined_sens <- p_days_sens / p_saving_curve_sens +
   plot_annotation(tag_levels = "A", tag_suffix = ")") &
   theme(plot.tag = element_text(face = "bold"))
 
 p_combined_sens
-ggsave(here("figures", "p_sgr_saving_by_meal_price_sensitivity.png"), plot = p_combined_sens, dpi = 300, width = 18, height = 6, units = "in")
+ggsave(here("figures", "p_sgr_saving_by_meal_price_sensitivity.png"), plot = p_combined_sens, dpi = 300, width = 9, height = 14, units = "in")
 
 ### PART D — SENSITIVITY TO HARVEST TARGET WEIGHT 
 
