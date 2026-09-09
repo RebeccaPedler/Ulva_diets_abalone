@@ -421,13 +421,112 @@ p_days <- ggplot(days_df, aes(x = days_saved)) +
  
 print(p_days)
 ggsave(here("figures", "p_days_saved.png"), plot = p_days, dpi = 300, width = 9, height = 6, units = "in")
- 
+  
+### PART C2.2: POSTERIOR DISTRIBUTION OF DAYS SAVED AND BREAK EVEN, ACROSS HARVEST TARGET WEIGHTS
+
+## Price sensitivity, across Ulva meal price AND harvest target ---
+
+meal_grid_sgr_sens <- seq(0, 20, by = 0.25)
+
+# Create dataframe for plotting, looped over harvest_grid
+prob_saving_curve_sens <- function(b, label, targets = harvest_grid, meal_grid = meal_grid_sgr_sens) {
+  purrr::map_dfr(targets, function(tg) {
+    tibble(meal_price = meal_grid, target_g = tg) |>
+      rowwise() |>
+      mutate(
+        p_saving_pos  = mean(total_cost_saving(b, meal_price, target_g = tg) > 0),
+        median_saving = median(total_cost_saving(b, meal_price, target_g = tg)),
+        model         = label
+      ) |>
+      ungroup()
+  })
+}
+
+saving_curve_sens_df <- prob_saving_curve_sens(b_growth, "primary_model") |>
+  mutate(target_g = factor(target_g, levels = harvest_grid))
+
+# Plot saving curve, one line per harvest target
+p_saving_curve_sens <- ggplot(saving_curve_sens_df,
+                         aes(x = meal_price, y = p_saving_pos, linetype = target_g)) +
+  geom_vline(xintercept = ulva_meal_price,
+             colour = "#993C1D", linewidth = 0.8) +
+  geom_hline(yintercept = 0.95,
+             colour = "grey70", linewidth = 0.8, linetype = "dotted") +
+  geom_hline(yintercept = 0.50,
+             colour = "grey70", linewidth = 0.8, linetype = "dotted") +
+  geom_line(colour = "black", linewidth = 0.7) +
+  annotate("text",
+           x      = ulva_meal_price,
+           y      = 0.12,
+           label  = sprintf("Actual meal\nprice $%.2f/kg", ulva_meal_price),
+           hjust  = -2,
+           vjust  = 0,
+           size   = 3,
+           colour = "#993C1D") +
+  scale_linetype_manual(
+    values = c("solid", "dashed", "dotted", "dotdash", "longdash", "twodash"),
+    name   = "Target harvest\nweight"
+  ) +
+  scale_x_continuous(labels = dollar_format(), breaks = seq(0, 20, 2)) +
+  scale_y_continuous(labels = percent_format(), limits = c(0, 1)) +
+  labs(
+    x     = "*Ulva* meal price ($/kg)",
+    y     = "P(total cost saving > 0)",
+    title = ""
+  ) +
+  theme_ulva() +
+  theme(
+    axis.title.x = ggtext::element_markdown()
+  )
+
+print(p_saving_curve_sens)
+ggsave(here("figures", "p_sgr_saving_by_meal_price_sensitivity.png"), plot = p_saving_curve_sens, dpi = 300, width = 9, height = 6, units = "in")
+
+## Days saved sensitivity, across harvest target ---
+
+days_saved_sens_df <- purrr::map_dfr(harvest_grid, function(tg) {
+  tibble(
+    target_g   = tg,
+    days_saved = days_saved(b_growth, tg)
+  )
+})
+
+days_saved_sens_df <- days_saved_sens_df |>
+  mutate(target_g = factor(target_g, levels = harvest_grid))
+
+# Medians for the dashed reference lines
+medians_sens_df <- days_saved_sens_df |>
+  group_by(target_g) |>
+  summarise(median_days = median(days_saved), .groups = "drop")
+
+p_days_sens <- ggplot(days_saved_sens_df, aes(x = days_saved, fill = target_g)) +
+  geom_density(colour = "black", linewidth = 0.5, alpha = 0.6) +
+  geom_vline(
+    data = medians_sens_df,
+    aes(xintercept = median_days),
+    colour = "black", linewidth = 0.5, linetype = "dashed", show.legend = FALSE
+  ) +
+  scale_fill_manual(
+    values = colorRampPalette(c("white", "black"))(length(harvest_grid)),
+    name   = "Target harvest\nweight"
+  ) +
+  scale_x_continuous(limits = c(-20, 75), breaks = seq(-20, 75, 20)) +
+  labs(
+    x = "Days saved to reach target harvest weight",
+    y = "Density"
+  ) +
+  theme_ulva() +
+  theme(
+    legend.position = c(0.84, 0.75),
+    legend.background = element_rect(fill = "white", colour = NA)
+  )
+
+print(p_days_sens)
+ggsave(here("figures", "p_days_saved_by_target_sensitivity.png"), plot = p_days_sens, dpi = 300, width = 9, height = 6, units = "in")
+
 ### PART D — SENSITIVITY TO HARVEST TARGET WEIGHT 
 
-# Create grid of harvest weights
-harvest_grid <- seq(80, 130, by = 10)
-
-#
+# Create data frame
 days_by_target_df <- purrr::map_dfr(harvest_grid, function(tg) {
   ds <- days_saved(b_growth, tg)
   tibble(
