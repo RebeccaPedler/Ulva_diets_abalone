@@ -371,7 +371,10 @@ p_saving_curve <- ggplot(saving_curve_df,
   ) +
   theme_ulva() +
   theme(
-    axis.title.x = ggtext::element_markdown()
+    axis.title.x = ggtext::element_markdown(),
+    axis.ticks.length = unit(0.15, "cm"),
+    axis.text.x = element_text(margin = margin(t = 8)),
+    axis.text.y = element_text(margin = margin(r = 8))
   )
  
 print(p_saving_curve)
@@ -417,10 +420,24 @@ p_days <- ggplot(days_df, aes(x = days_saved)) +
     x        = sprintf("Days saved to reach %.0fg harvest weight", TARGET_G),
     y        = "Density"
   ) +
-  theme_ulva()
+  theme_ulva() +
+  theme(
+    axis.ticks.length = unit(0.15, "cm"),
+    axis.text.x = element_text(margin = margin(t = 8)),
+    axis.text.y = element_text(margin = margin(r = 8))
+  )
  
 print(p_days)
 ggsave(here("figures", "p_days_saved.png"), plot = p_days, dpi = 300, width = 9, height = 6, units = "in")
+
+# Combine plots
+p_combined <- p_days + p_saving_curve +
+  plot_annotation(tag_levels = "A", tag_suffix = ")") &
+  theme(plot.tag = element_text(face = "bold"))
+
+p_combined
+
+ggsave(here("figures", "p_combined.png"), plot = p_combined, dpi = 300, width = 18, height = 6, units = "in")
   
 ### PART C2.2: POSTERIOR DISTRIBUTION OF DAYS SAVED AND BREAK EVEN, ACROSS HARVEST TARGET WEIGHTS
 
@@ -476,13 +493,16 @@ p_saving_curve_sens <- ggplot(saving_curve_sens_df,
   ) +
   theme_ulva() +
   theme(
-    axis.title.x = ggtext::element_markdown()
+    axis.title.x = ggtext::element_markdown(),
+    axis.ticks.length = unit(0.15, "cm"),
+    axis.text.x = element_text(margin = margin(t = 8)),
+    axis.text.y = element_text(margin = margin(r = 8))
   )
 
 print(p_saving_curve_sens)
 ggsave(here("figures", "p_sgr_saving_by_meal_price_sensitivity.png"), plot = p_saving_curve_sens, dpi = 300, width = 9, height = 6, units = "in")
 
-## Days saved sensitivity, across harvest target ---
+## Days saved sensitivity, across harvest target
 
 days_saved_sens_df <- purrr::map_dfr(harvest_grid, function(tg) {
   tibble(
@@ -518,11 +538,22 @@ p_days_sens <- ggplot(days_saved_sens_df, aes(x = days_saved, fill = target_g)) 
   theme_ulva() +
   theme(
     legend.position = c(0.84, 0.75),
-    legend.background = element_rect(fill = "white", colour = NA)
+    legend.background = element_rect(fill = "white", colour = NA),
+    axis.ticks.length = unit(0.15, "cm"),
+    axis.text.x = element_text(margin = margin(t = 8)),
+    axis.text.y = element_text(margin = margin(r = 8))
   )
 
 print(p_days_sens)
 ggsave(here("figures", "p_days_saved_by_target_sensitivity.png"), plot = p_days_sens, dpi = 300, width = 9, height = 6, units = "in")
+
+# Patch plots together 
+p_combined_sens <- p_days_sens + p_saving_curve_sens +
+  plot_annotation(tag_levels = "A", tag_suffix = ")") &
+  theme(plot.tag = element_text(face = "bold"))
+
+p_combined_sens
+ggsave(here("figures", "p_sgr_saving_by_meal_price_sensitivity.png"), plot = p_combined, dpi = 300, width = 18, height = 6, units = "in")
 
 ### PART D — SENSITIVITY TO HARVEST TARGET WEIGHT 
 
@@ -539,7 +570,6 @@ days_by_target_df <- purrr::map_dfr(harvest_grid, function(tg) {
 }) |>
   mutate(across(where(is.numeric), ~ round(.x, c(0, 1, 1, 1, 3)[cur_column() == names(pick(everything()))])))
 
- 
 ### PART D2 — BREAK-EVEN PRICE AT 50%, 95% AND 99% PROFITABILITY, ACROSS FEED OPEX SHARE x HARVEST WEIGHT
 
 ## Question: how sensitive are the 50%, 95%, and 99% confident-profitable prices to feed share of total opex, across a range of harvest weights
