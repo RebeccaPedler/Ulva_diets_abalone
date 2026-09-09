@@ -553,7 +553,7 @@ p_combined_sens <- p_days_sens + p_saving_curve_sens +
   theme(plot.tag = element_text(face = "bold"))
 
 p_combined_sens
-ggsave(here("figures", "p_sgr_saving_by_meal_price_sensitivity.png"), plot = p_combined, dpi = 300, width = 18, height = 6, units = "in")
+ggsave(here("figures", "p_sgr_saving_by_meal_price_sensitivity.png"), plot = p_combined_sens, dpi = 300, width = 18, height = 6, units = "in")
 
 ### PART D — SENSITIVITY TO HARVEST TARGET WEIGHT 
 
