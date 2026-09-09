@@ -375,8 +375,8 @@ p_saving_curve <- ggplot(saving_curve_df,
   theme(
   axis.title.x = ggtext::element_markdown(size = 12),
   axis.ticks.length = unit(0.15, "cm"),
-  axis.text.x = element_text(margin = margin(t = 8)),
-  axis.text.y = element_text(margin = margin(r = 8)),
+  axis.text.x = element_text(margin = margin(t = 8), size = 10),
+  axis.text.y = element_text(margin = margin(r = 8), size = 10),
   axis.title.y = element_text(size = 12)
 )
  
@@ -426,15 +426,14 @@ p_days <- ggplot(days_df, aes(x = days_saved)) +
   theme_ulva() +
   theme(
     axis.ticks.length = unit(0.15, "cm"),
-    axis.text.x = element_text(margin = margin(t = 8)),
-    axis.text.y = element_text(margin = margin(r = 8)),
+    axis.text.x = element_text(margin = margin(t = 8), size = 10),
+    axis.text.y = element_text(margin = margin(r = 8), size = 10),
     axis.title.x = element_text(size = 12),
     axis.title.y = element_text(size = 12)
   )
  
 print(p_days)
-
-ggsave(here("figures", "p_combined.png"), plot = p_combined, dpi = 300, width = 8, height = 14, units = "in")
+ggsave(here("figures", "p_days_saved.png"), plot = p_days, dpi = 300, width = 9, height = 6, units = "in")
 
 # Combine plots
 p_combined <- p_days / p_saving_curve +
@@ -443,11 +442,11 @@ p_combined <- p_days / p_saving_curve +
 
 p_combined
 
-ggsave(here("figures", "p_combined.png"), plot = p_combined, dpi = 300, width = 18, height = 6, units = "in")
+ggsave(here("figures", "p_combined.png"), plot = p_combined, dpi = 300, width = 10, height = 16, units = "in")
   
 ### PART C2.2: POSTERIOR DISTRIBUTION OF DAYS SAVED AND BREAK EVEN, ACROSS HARVEST TARGET WEIGHTS
 
-## Price sensitivity, across Ulva meal price AND harvest target ---
+## Price sensitivity, across Ulva meal price AND harvest target
 
 meal_grid_sgr_sens <- seq(0, 20, by = 0.25)
 
