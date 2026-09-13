@@ -330,6 +330,8 @@ print(as.data.frame(sgr_summary), row.names = FALSE)
  
 meal_grid_sgr <- seq(0, 20, by = 0.25)
 
+harvest_grid <- c(70, 80, 90, 100, 110, 120)
+
 # Create dataframe for plotting
 prob_saving_curve <- function(b, label) {
   tibble(meal_price = meal_grid_sgr) |>
