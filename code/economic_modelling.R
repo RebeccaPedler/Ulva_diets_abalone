@@ -10,6 +10,7 @@ library(here)
 library(scales)
 library(ggtext)
 library(ggplot2)
+library(patchwork)
  
 ### CREATE THEMES
  
