@@ -814,8 +814,7 @@ print(as.data.frame(compare_tbl), row.names = FALSE)
 
 # Ulva effect increases slightly - growth benefit holds up
 
-## Additional sensitivity test 
-# Individual-level heirarchical model with tank random effect - does Ulva effect hold up?
+## Sensitivity check two - Individual-level heirarchical model with tank random effect - does Ulva effect hold up?
 
 # Create dataframe with scaled per_capita_feed
 df_sub <- df_sub |>
@@ -872,6 +871,28 @@ icc_hier <- draws$sd_tank__Intercept^2 / (draws$sd_tank__Intercept^2 + draws$sig
 c(median = median(icc_hier),
   lower  = quantile(icc_hier, .025),
   upper  = quantile(icc_hier, .975))
+
+ ## Sensitivity check three - Verify that feed availability matters 
+
+if (refit) {
+  fit_weight_non_corrected <- brm(
+    formula  = mean_log_weight ~ diet, 
+    data     = tank_df,
+    family   = gaussian(),
+    prior    = priors_logwt,
+    chains   = 4,
+    cores    = 4,
+    iter     = 4000,
+    warmup   = 2000,
+    seed     = 42,
+    control  = list(adapt_delta = 0.95)
+  )
+  saveRDS(fit_weight_non_corrected, here("models", "fit_weight_non_corrected.rds"))
+} else {
+  fit_weight_non_corrected <- readRDS(here("models", "fit_weight_non_corrected.rds"))
+}
+
+summary(fit_weight_non_corrected)
 
 ## NEXT: Run economic_modelling.R
 
