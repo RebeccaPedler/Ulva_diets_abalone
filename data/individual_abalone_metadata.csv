@@ -1,15 +1,15 @@
-﻿column,data_type,units,description
-tank,text,NA,"Unique tank identifier between E01 and E16 (E01, E02…)"
-diet,categorical,NA,"The diet provided to abalone within experimental tank. Diets included a commercial control, and experimental diets containing either 20% Ulva or 20% wakame"
+column,data_type,units,description
+tank,text,,"Unique tank identifier: U01-U04 (Ulva diet), W01-W04 (wakame diet) and C01-C04 (control diet)"
+diet,categorical,,The diet provided to abalone within experimental tank. Diets included a control (C01-C04) and experimental diets containing either 20% Ulva (U01-U04) or 20% wakame (W01-W04)
 diet_cost,categorical,$AUD/kg,Price of experimental diets
 latitude,float / double,degrees,Decimal degrees WGS84 (-90 to +90)
 longitude,float / double,degrees,Decimal degrees WGS84 (-180 to +180)
-start_density,continious,kilograms per meter squared (kg/m2),"Starting stocking density of each tank, calculated as the total kilograms per each square meter of tank space"
-end_density,continious,kilograms per meter squared (kg/m2),"End stocking density of each tank, calculated as the total kilograms per each square meter of tank space"
+start_density,continious,kilograms per meter squared (kg/m2),"Starting stocking density of each tank, calculated as start_biomass divided by 50 m2 of tank space"
+end_density,continious,kilograms per meter squared (kg/m2),"End stocking density of each tank, calculated as end_biomass divided by 50 m2 of tank space"
 start_biomass,continious,"kilograms, kg",Starting total biomass for each tank
 end_biomass,continious,"kilograms, kg",End biomass for each tank
-start_count,continious,"count, #",Beginning number of abalone within parent tank
-end_count,continious,"count, #",End number of abalone within parent tank
+start_count,continious,"count, #","Beginning number of abalone within parent tank, calculated as the drone (zonal statistics) end count plus recorded mortality over the trial"
+end_count,continious,"count, #","End number of abalone within parent tank, from the drone (zonal statistics) count (all detections)"
 start_ABW,continious,"grams, g",Mean average abalone weight at the beginning of the trial. Aggregated by tank
 start_ABL,continious,"milometers, mm",Mean average abalone length at the beginning of the trial. Aggregated by tank
 mortality,continious,"percentage, %",Mortality across the experimental period expressed as a percentage of start count
