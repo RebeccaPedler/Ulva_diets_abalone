@@ -1,6 +1,6 @@
 # Project: A probabilistic cost–benefit analysis of macroalgal dietary supplementation in commercial greenlip abalone (Haliotis laevigata) aquaculture
 
-## Step 2: Economic analysis
+## Step 5: Economic analysis
 
 ### LOAD PACKAGES
  
@@ -41,11 +41,6 @@ df_raw <- df_raw |>
     diet       = factor(diet, levels = c("control", "ulva", "wakame")),
     log_weight = log(weight_g)
   )
- 
-## E01 had really high mortality due to TGP spike in late January - remove this tank because
-## of TGP confound (matches the exclusion applied in Bayesian_models.R)
-df_raw <- df_raw |>
-  filter(tank != "E01")
  
 # Filter biologically implausible values (segmentation artefacts)
 df_econ <- df_raw |>
@@ -101,7 +96,6 @@ feed_share_grid <- c(0.10, 0.15, 0.20, 0.25, 0.30)
 ### GROWTH INPUTS FROM BAYESIAN MODELS
 
 ## Primary model: diet + per_capita_feed_z
-## Adjusting for per-capita feed removes the feed-availability confound
 fit_model <- readRDS(here("models", "fit_weight_final.rds"))
 summary(fit_model)
  
