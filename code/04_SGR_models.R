@@ -390,6 +390,6 @@ final_summary_sgr <- tibble(
 
 print(final_summary_sgr)
 
-## NEXT: Run "04_mortality_models.R"
+## NEXT: Run "05_economic_modelling.R"
 
 ### END OF SCRIPT ###
