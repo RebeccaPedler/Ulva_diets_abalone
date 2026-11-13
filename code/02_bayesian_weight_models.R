@@ -336,29 +336,7 @@ print(loo_weight_final)
 # Check any tanks with pareto_k > 0.7
 pareto_k <- loo_weight_final$diagnostics$pareto_k
 pareto_k
-which(pareto_k > 0.7)
-
-# Do additional sensitivity test for priors
-
-if (refit) {
-  fit_prior_only <- brm(
-    formula = mean_log_weight ~ diet + per_capita_feed_z,
-    data    = tank_df,
-    family  = gaussian(),
-    prior   = priors_logwt,
-    sample_prior = "only",
-    chains  = 4, 
-    cores = 4, 
-    iter = 2000, 
-    seed = 42
-  )
-  saveRDS(fit_prior_only, here("models", "fit_prior_only.rds"))
-} else {
-  fit_prior_only <- readRDS(here("models", "fit_prior_only.rds"))
-}
-
-p_pp_prior_only <- pp_check(fit_prior_only) # Confirms that weakly informed prior improve fit
-ggsave(here("figures", "pp_check_prior_only.png"), plot = p_pp_prior_only, dpi = 300, width = 8, height = 6, units = "in")
+which(pareto_k > 0.7) # No tanks
 
 ### SUMMARY TABLE
 
@@ -394,56 +372,7 @@ final_summary_weight <- tibble(
 
 print(final_summary_weight)
 
-## Sensitivity check one - Does the diet effect hold with E02 removed (Pareto K > 0.7)
-
-# Create dataset with E02 removed
-sensitivity <- tank_df |>
-  filter(!tank %in% c("E02"))
-
-# Run model
-
-if (refit) {
-  fit_weight_noinfl <- brm(
-    formula  = mean_log_weight ~ diet + per_capita_feed_z,
-    data     = sensitivity,
-    family   = gaussian(),
-    prior    = priors_logwt,
-    chains   = 4,
-    cores    = 4,
-    iter     = 4000,
-    warmup   = 2000,
-    seed     = 42,
-    control  = list(adapt_delta = 0.99, max_treedepth = 12)
-  )
-  saveRDS(fit_weight_noinfl, here("models", "fit_weight_noinfl.rds"))
-} else {
-  fit_weight_noinfl <- readRDS(here("models", "fit_weight_noinfl.rds"))
-}
-
-summary(fit_weight_noinfl)
-p_pp_noinfl <- pp_check(fit_weight_noinfl)
-ggsave(here("figures", "pp_check_noinfl.png"), plot = p_pp_noinfl, dpi = 300, width = 8, height = 6, units = "in")
-
-## Compare the diet effect: full model vs influential-tanks-removed
-post_full   <- as_draws_df(fit_weight_final)$b_dietulva
-post_noinfl <- as_draws_df(fit_weight_noinfl)$b_dietulva
-
-compare_tbl <- tibble(
-  model      = c("Full (11 tanks)", "Excl. E02 (10 tanks)"),
-  median_log = c(median(post_full),  median(post_noinfl)),
-  lower95    = c(quantile(post_full, .025),  quantile(post_noinfl, .025)),
-  upper95    = c(quantile(post_full, .975),  quantile(post_noinfl, .975)),
-  pct_median = c(100 * (exp(median(post_full))   - 1),
-                 100 * (exp(median(post_noinfl)) - 1)),
-  p_gt_0     = c(mean(post_full > 0), mean(post_noinfl > 0))
-) |>
-  mutate(across(where(is.numeric), ~ round(.x, 4)))
-
-print(as.data.frame(compare_tbl), row.names = FALSE)
-
-# Ulva effect increases slightly - growth benefit holds up
-
-## Sensitivity check two - Individual-level heirarchical model with tank random effect - does Ulva effect hold up?
+## SENSITIVITY CHECK - Individual-level heirarchical model with tank random effect - does Ulva effect hold up?
 
 # Create dataframe with scaled per_capita_feed
 df_sub <- df_sub |>
@@ -493,14 +422,6 @@ compare_hier <- tibble(
   mutate(across(where(is.numeric), ~ round(.x, 4)))
 
 print(as.data.frame(compare_hier), row.names = FALSE)
-
-## Check if 10% tank variation from earlier ICC holds
-draws    <- as_draws_df(fit_hier)
-icc_hier <- draws$sd_tank__Intercept^2 / (draws$sd_tank__Intercept^2 + draws$sigma^2)
-c(median = median(icc_hier),
-  lower  = quantile(icc_hier, .025),
-  upper  = quantile(icc_hier, .975))
-
 
 ## NEXT: Run "03_bayesian_SGR_models.R"
 
