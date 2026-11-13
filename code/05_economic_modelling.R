@@ -89,7 +89,7 @@ tank_df |>
 
 ### GROWTH INPUTS FROM THE BAYESIAN SGR MODEL
 
-fit_model <- readRDS(here("models", "fit_SGR_final.rds"))
+fit_model <- readRDS(here("models", "fit_sgr_final.rds"))
 summary(fit_model)
 
 ### EXTRACT POSTERIORS
