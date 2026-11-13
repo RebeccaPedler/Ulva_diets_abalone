@@ -19,6 +19,8 @@ library(here)
 library(FSA)
 library(purrr)
 library(dplyr)
+library(ggtext)
+library(scales)
 
 ### MODEL FITTING CONTROL
 
