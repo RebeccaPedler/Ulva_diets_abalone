@@ -78,7 +78,7 @@ priors_sgr_wide <- c(
   prior(exponential(1),         class = sigma)
 )
 
-# Individual-level model: individual SGR varies more than tank means (SD ~0.2 % per day), so sigma and the tank SD get wider priors
+# Individual-level model: individual SGR varies more than tank means (SD ~0.2 % per day) - allowing with wider priors
 priors_sgr_hier <- c(
   prior(student_t(3, 0.6, 0.5), class = Intercept),
   prior(normal(0, 0.25),        class = b),
@@ -88,11 +88,11 @@ priors_sgr_hier <- c(
 
 ## SGR MODELS
 
-## INITIAL SENSITIVITY CHECK: DOES FEED AVAILABILITY MATTER 
+## INITIAL SENSITIVITY CHECK: Does start weight matter (because SGR calculated from each tanks start mean weight)
 
 if (refit) {
   fit_sgr_non_corrected <- brm(
-    formula  = SGR ~ diet, 
+    formula  = SGR ~ diet + per_capita_feed_z, 
     data     = tank_df,
     family   = gaussian(),
     chains   = 4,
@@ -113,7 +113,7 @@ summary(fit_sgr_non_corrected)
 
 if (refit) {
   fit_sgr_default <- brm(
-    formula  = SGR ~ diet + per_capita_feed_z,
+    formula  = SGR ~ diet + per_capita_feed_z + start_ABW_z,
     data     = tank_df,
     family   = gaussian(),
     chains   = 4,
@@ -132,14 +132,15 @@ summary(fit_sgr_default)
 p_pp_default <- pp_check(fit_sgr_default)
 ggsave(here("figures", "pp_check_sgr_default.png"), plot = p_pp_default, dpi = 300, width = 8, height = 6, units = "in")
 
-## Compare with the weight models: does the diet effect on SGR also depend on feed availability?
+## Start weight and feed availability also matter for SGR (smaller tanks that were fed more have higher SGR)
+
 ## Begin modelling with different priors to see how credibility intervals change
 
 ## MODEL B2: Gaussian with weakly informative priors
 
 if (refit) {
   fit_sgr_informative <- brm(
-    formula  = SGR ~ diet + per_capita_feed_z,
+    formula  = SGR ~ diet + per_capita_feed_z + start_ABW_z,
     data     = tank_df,
     family   = gaussian(),
     prior    = priors_sgr,
@@ -163,7 +164,7 @@ ggsave(here("figures", "pp_check_sgr_informative.png"), plot = p_pp_informative,
 
 if (refit) {
   fit_sgr_informative_wide <- brm(
-    formula  = SGR ~ diet + per_capita_feed_z,
+    formula  = SGR ~ diet + per_capita_feed_z + start_ABW_z,
     data     = tank_df,
     family   = gaussian(),
     prior    = priors_sgr_wide,
@@ -183,55 +184,6 @@ summary(fit_sgr_informative_wide)
 p_pp_informative_wide <- pp_check(fit_sgr_informative_wide)
 ggsave(here("figures", "pp_check_sgr_informative_wide.png"), plot = p_pp_informative_wide, dpi = 300, width = 8, height = 6, units = "in")
 
-# MODEL B4: Sensitivity test (add start_density_z) - with weakly informative priors
-
-if (refit) {
-  fit_sgr_sens <- brm(
-    formula  = SGR ~ diet + per_capita_feed_z + start_density_z,
-    data     = tank_df,
-    family   = gaussian(),
-    prior    = priors_sgr,
-    chains   = 4,
-    cores    = 4,
-    iter     = 2000,
-    warmup   = 1000,
-    seed     = 42,
-    control  = list(adapt_delta = 0.95)
-  )
-  saveRDS(fit_sgr_sens, here("models", "fit_sgr_sens.rds"))
-} else {
-  fit_sgr_sens <- readRDS(here("models", "fit_sgr_sens.rds"))
-}
-
-summary(fit_sgr_sens)
-p_pp_sens <- pp_check(fit_sgr_sens)
-ggsave(here("figures", "pp_check_sgr_sens.png"), plot = p_pp_sens, dpi = 300, width = 8, height = 6, units = "in")
-
-# MODEL B5: Sensitivity test (add start_ABW_z) - with weakly informative priors
-
-if (refit) {
-  fit_sgr_sens2 <- brm(
-    formula  = SGR ~ diet + per_capita_feed_z + start_ABW_z,
-    data     = tank_df,
-    family   = gaussian(),
-    prior    = priors_sgr,
-    chains   = 4,
-    cores    = 4,
-    iter     = 2000,
-    warmup   = 1000,
-    seed     = 42,
-    control  = list(adapt_delta = 0.95)
-  )
-  saveRDS(fit_sgr_sens2, here("models", "fit_sgr_sens2.rds"))
-} else {
-  fit_sgr_sens2 <- readRDS(here("models", "fit_sgr_sens2.rds"))
-}
-
-summary(fit_sgr_sens2)
-p_pp_sens2 <- pp_check(fit_sgr_sens2)
-ggsave(here("figures", "pp_check_sgr_sens2.png"), plot = p_pp_sens2, dpi = 300, width = 8, height = 6, units = "in")
-
-# SGR is calculated from start weight, so start_ABW_z is expected to matter (check its effect and LOO below)
 
 # LEAVE-ONE-OUT COMPARISON
 
@@ -239,20 +191,16 @@ fit_sgr_default          <- add_criterion(fit_sgr_default,          "loo", momen
 fit_sgr_informative      <- add_criterion(fit_sgr_informative,      "loo", moment_match = TRUE)
 fit_sgr_informative_wide <- add_criterion(fit_sgr_informative_wide, "loo", moment_match = TRUE)
 fit_sgr_non_corrected    <- add_criterion(fit_sgr_non_corrected,    "loo", moment_match = TRUE)
-fit_sgr_sens             <- add_criterion(fit_sgr_sens,             "loo", moment_match = TRUE)
-fit_sgr_sens2            <- add_criterion(fit_sgr_sens2,            "loo", moment_match = TRUE)
 
 ## Rank all models based on elpd_diff
 loo_compare(
   fit_sgr_default,
   fit_sgr_informative,
   fit_sgr_informative_wide,
-  fit_sgr_non_corrected,
-  fit_sgr_sens,
-  fit_sgr_sens2
+  fit_sgr_non_corrected
 )
 
-# Check whether results are robust across sensitivity analyses and regardless of prior choice
+# fit_SGR_informative has best fit
 ## Continue with final model (diet + feed availability + start ABW) and with more iterations
 
 if (refit) {
@@ -352,6 +300,44 @@ pareto_k <- loo_sgr_final$diagnostics$pareto_k
 pareto_k
 which(pareto_k > 0.7)
 
+# Remove each flagged tank individually and then all three
+drop_list <- list(
+  "all 12 tanks"     = character(0),
+  "without C01"      = "C01",
+  "without C04"      = "C04",
+  "without U04"      = "U04",
+  "without all three" = c("C01", "C04", "U04")
+)
+
+# Refit the final model for each scenario
+fits <- imap(drop_list, function(drop, label) {
+  update(
+    fit_sgr_final,
+    newdata = filter(tank_df, !tank %in% drop),
+    chains = 4, iter = 2000, cores = 4, seed = 123
+  )
+})
+
+# Compare the diet effects
+results <- imap_dfr(fits, function(fit, label) {
+  draws <- as_draws_df(fit)
+  tibble(
+    scenario   = label,
+    n_tanks    = nrow(fit$data),
+    ulva_med   = median(draws$b_dietulva),
+    ulva_lower = quantile(draws$b_dietulva, 0.025),
+    ulva_upper = quantile(draws$b_dietulva, 0.975),
+    p_ulva_pos = mean(draws$b_dietulva > 0),
+    wakame_med = median(draws$b_dietwakame),
+    wakame_lower = quantile(draws$b_dietwakame, 0.025),
+    wakame_upper = quantile(draws$b_dietwakame, 0.975)
+  )
+})
+
+results # Print
+
+## SGR effect positive in all models but certainty reduces if you remove C01
+
 # Do additional sensitivity test for priors
 
 if (refit) {
@@ -394,6 +380,7 @@ final_summary_sgr <- tibble(
   lower95     = quantile(b, 0.025),
   upper95     = quantile(b, 0.975),
   p_gt_0      = mean(b > 0),
+
   # SGR gain relative to control SGR (needs ref_sgr)
   pct_mean    = if (!is.null(pct)) mean(pct)            else NA_real_,
   pct_median  = if (!is.null(pct)) median(pct)          else NA_real_,
@@ -402,116 +389,6 @@ final_summary_sgr <- tibble(
 )
 
 print(final_summary_sgr)
-
-## Sensitivity check one - Does the diet effect hold with E02 removed (Pareto K > 0.7)
-## (Update the tank ID to whichever tank(s) have pareto_k > 0.7 in the SGR model above)
-
-# Create dataset with E02 removed
-sensitivity <- tank_df |>
-  filter(!tank %in% c("E02"))
-
-# Run model
-
-if (refit) {
-  fit_sgr_noinfl <- brm(
-    formula  = SGR ~ diet + per_capita_feed_z + start_ABW_z,
-    data     = sensitivity,
-    family   = gaussian(),
-    prior    = priors_sgr,
-    chains   = 4,
-    cores    = 4,
-    iter     = 4000,
-    warmup   = 2000,
-    seed     = 42,
-    control  = list(adapt_delta = 0.99, max_treedepth = 12)
-  )
-  saveRDS(fit_sgr_noinfl, here("models", "fit_sgr_noinfl.rds"))
-} else {
-  fit_sgr_noinfl <- readRDS(here("models", "fit_sgr_noinfl.rds"))
-}
-
-summary(fit_sgr_noinfl)
-p_pp_noinfl <- pp_check(fit_sgr_noinfl)
-ggsave(here("figures", "pp_check_sgr_noinfl.png"), plot = p_pp_noinfl, dpi = 300, width = 8, height = 6, units = "in")
-
-## Compare the diet effect: full model vs influential-tanks-removed
-post_full   <- as_draws_df(fit_sgr_final)$b_dietulva
-post_noinfl <- as_draws_df(fit_sgr_noinfl)$b_dietulva
-
-compare_tbl <- tibble(
-  model      = c("Full (all tanks)", "Excl. E02"),
-  median_sgr = c(median(post_full),  median(post_noinfl)),
-  lower95    = c(quantile(post_full, .025),  quantile(post_noinfl, .025)),
-  upper95    = c(quantile(post_full, .975),  quantile(post_noinfl, .975)),
-  p_gt_0     = c(mean(post_full > 0), mean(post_noinfl > 0))
-) |>
-  mutate(across(where(is.numeric), ~ round(.x, 4)))
-
-print(as.data.frame(compare_tbl), row.names = FALSE)
-
-## Sensitivity check two - Individual-level heirarchical model with tank random effect - does Ulva effect hold up?
-
-# Individual SGR is calculated against the tank start ABW (individual start weights were not measured)
-# SGR_ind = 100 * (ln(individual weight) - ln(tank start ABW)) / days
-df_sub <- df_sub |>
-  left_join(tank_df |> select(tank, start_ABW), by = "tank") |>
-  mutate(
-    SGR_ind           = 100 * (log_weight - log(start_ABW)) / trial_days,
-    per_capita_feed_z = scale(per_capita_feed)[, 1]
-  )
-
-# Run model 
-# start_ABW_z is not included here because it is constant within tank and absorbed by the tank random effect
-
-if (refit) {
-  fit_hier <- brm(
-    SGR_ind ~ diet + per_capita_feed_z + (1 | tank),
-    data    = df_sub,
-    family  = gaussian(),
-    prior   = priors_sgr_hier,         
-    chains  = 4, cores = 4,
-    iter    = 4000, warmup = 2000,
-    seed    = 42,
-    control = list(adapt_delta = 0.95)
-  )
-  saveRDS(fit_hier, here("models", "fit_sgr_hier.rds"))
-} else {
-  fit_hier <- readRDS(here("models", "fit_sgr_hier.rds"))
-}
-
-summary(fit_hier)
-
-# Diagnostic checks 
-fit_hier_trace <- mcmc_trace(fit_hier, pars = c("b_dietulva", "b_dietwakame", "b_per_capita_feed_z", "sd_tank__Intercept", "sigma"))
-ggsave(here("figures", "fit_sgr_hier_trace.png"), plot = fit_hier_trace, dpi = 300, width = 6, height = 5, units = "in")
- 
-fit_hier_ppcheck <- pp_check(fit_hier)
-ggsave(here("figures", "fit_sgr_hier.png"), plot = fit_hier_ppcheck, dpi = 300, width = 6, height = 5, units = "in")
-
-fit_hier_mean <- pp_check(fit_hier, type = "stat", stat = "mean")
-ggsave(here("figures", "fit_sgr_hier_mean.png"), plot = fit_hier_mean, dpi = 300, width = 6, height = 5, units = "in")
-
-b_hier <- as_draws_df(fit_hier)$b_dietulva
-b_agg  <- as_draws_df(fit_sgr_final)$b_dietulva
-
-compare_hier <- tibble(
-  model      = c("Aggregated (tank means, n = 12)", "Hierarchical (individuals + 1|tank)"),
-  median_sgr = c(median(b_agg), median(b_hier)),
-  lower95    = c(quantile(b_agg, .025), quantile(b_hier, .025)),
-  upper95    = c(quantile(b_agg, .975), quantile(b_hier, .975)),
-  p_gt_0     = c(mean(b_agg > 0), mean(b_hier > 0))
-) |>
-  mutate(across(where(is.numeric), ~ round(.x, 4)))
-
-print(as.data.frame(compare_hier), row.names = FALSE)
-
-## Check if 10% tank variation from earlier ICC holds
-draws    <- as_draws_df(fit_hier)
-icc_hier <- draws$sd_tank__Intercept^2 / (draws$sd_tank__Intercept^2 + draws$sigma^2)
-c(median = median(icc_hier),
-  lower  = quantile(icc_hier, .025),
-  upper  = quantile(icc_hier, .975))
-
 
 ## NEXT: Run "04_mortality_models.R"
 
