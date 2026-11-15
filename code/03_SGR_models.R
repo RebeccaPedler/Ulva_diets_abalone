@@ -1,6 +1,6 @@
 # Project: A probabilistic cost–benefit analysis of macroalgal dietary supplementation in commercial greenlip abalone (Haliotis laevigata) aquaculture
 
-## Step 4: Bayesian SGR models
+## Step 3: Bayesian SGR models
 
 ### MODEL FITTING CONTROL
 
@@ -40,30 +40,8 @@ tank_df <- tank_df |>
     end_density_z       = scale(end_density)[, 1], 
   )
 
-## CREATE FUNCTION FOR PULLING POSTERIOR PROBABILITIES
-
-posterior_summary_table <- function(model, direction = c("greater", "less"), digits = 3) {
-
-  direction <- match.arg(direction)
-
-  draws <- as_draws_df(model) %>%
-    select(starts_with("b_"))
-
-  purrr::map_dfr(names(draws), function(param) {
-    b <- draws[[param]]
-
-    tibble(
-      effect    = param,
-      estimate  = median(b),
-      est_error = sd(b),
-      lower95   = quantile(b, 0.025),
-      upper95   = quantile(b, 0.975),
-      p_direction = if (direction == "greater") mean(b > 0) else mean(b < 0)
-    )
-  }) %>%
-    rename(!!paste0("p_", direction, "_0") := p_direction) %>%
-    mutate(across(where(is.numeric), ~ round(.x, digits)))
-}
+## Load function for pulling posteriors
+source(here("code", "00_helpers.R"))
 
 ## SET PRIORS  
 priors_sgr <- c(
@@ -390,6 +368,6 @@ final_summary_sgr <- tibble(
 
 print(final_summary_sgr)
 
-## NEXT: Run "05_economic_modelling.R"
+## NEXT: Run "04_bayesian_mortality_models.R"
 
 ### END OF SCRIPT ###
