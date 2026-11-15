@@ -1,6 +1,5 @@
 column,data_type,units,description
 date,text,DD/MM/YYYY,Calendar date of each record from the 131-day trial period (10/11/2025 to 20/03/2026)
-oxygen,continious,saturation %,Average oxygen saturation across the trial period
 water_temperature,continious,degrees celcius,Average daily water temperature across the trial period
 feed_per_tank_kg,continious,"kilograms, kg",Daily feed ration delivered to each tank. Blank records mean that tanks were not fed on that day.
 X_count,continious,"count, #","Estimated number of live abalone in tank X on the given date, interpolated between recorded mortality checks. Used as the daily divisor for X"
