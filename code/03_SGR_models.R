@@ -1,6 +1,6 @@
 # Project: A probabilistic cost–benefit analysis of macroalgal dietary supplementation in commercial greenlip abalone (Haliotis laevigata) aquaculture
 
-## Step 4: Bayesian SGR models
+## Step 3: Bayesian SGR models
 
 ### MODEL FITTING CONTROL
 
@@ -390,6 +390,6 @@ final_summary_sgr <- tibble(
 
 print(final_summary_sgr)
 
-## NEXT: Run "05_economic_modelling.R"
+## NEXT: Run "04_bayesian_mortality_models.R"
 
 ### END OF SCRIPT ###
