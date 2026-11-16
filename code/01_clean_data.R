@@ -5,7 +5,8 @@
 ## Load required packages
 
 ### Install packages
-install.packages(c("tidyverse","brms","ggplot2","patchwork", "bayesplot","tidybayes","posterior","ggcorrplot", "here", "FSA"))
+install.packages(c("tidyverse","brms","ggplot2","patchwork", "bayesplot","tidybayes","posterior","ggcorrplot", "here", 
+                   "FSA", "purrr", "dplyr", "ggtext", "scales", "tidyr", "lubridate"))
  
 library(tidyverse)
 library(brms)
