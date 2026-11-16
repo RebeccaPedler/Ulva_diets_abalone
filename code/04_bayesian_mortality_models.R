@@ -496,6 +496,6 @@ p_survival <- ggplot(plot_df, aes(date, value, colour = series, linetype = serie
 p_survival
 ggsave(here("figures", "p_survival_temperature.png"), p_survival, dpi = 300, width = 8, height = 5)
 
-## NEXT: Run "05_economic_modelling.R"
+## NEXT: Run "05_economic_models.R"
 
 ### END OF SCRIPT ###
