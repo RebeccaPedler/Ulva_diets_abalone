@@ -300,20 +300,19 @@ cat(sprintf("\nR-squared of weekly mean temperature explained by month: %.2f\n",
 ## SET PRIORS
 
 priors_mort <- c(
-  prior(student_t(3, -7, 2.5), class = Intercept),
+  prior(student_t(3, -5, 2.5), class = Intercept),
   prior(normal(0, 1),          class = b),
   prior(exponential(2),        class = sd)
 )
 
 ## MODELS (all fitted to all weeks)
 
-
 ## STEP A: TEMPERATURE VS MONTH (decide which one goes into the other models)
 
 # MODEL H0_1: Water temperature only
 if (refit) {
   fit_mort_H0_1 <- brm(
-    formula = deaths | trials(at_risk) ~ offset(log(days)) + temp_z + (1 | tank) + (1 | week) + (1 | obs),
+    formula = deaths | trials(at_risk) ~ temp_z + (1 | tank) + (1 | week) + (1 | obs),
     data = mort, family = binomial(link = "cloglog"), prior = priors_mort,
     chains = 4, cores = 4, iter = 2000, warmup = 1000, seed = 42, control = list(adapt_delta = 0.95))
   saveRDS(fit_mort_H0_1, here("models", "fit_mort_H0_1.rds"))
@@ -325,7 +324,7 @@ summary(fit_mort_H0_1)
 # MODEL H0_2: Month only
 if (refit) {
   fit_mort_H0_2 <- brm(
-    formula = deaths | trials(at_risk) ~ offset(log(days)) + month + (1 | tank) + (1 | week) + (1 | obs),
+    formula = deaths | trials(at_risk) ~ month + (1 | tank) + (1 | week) + (1 | obs),
     data = mort, family = binomial(link = "cloglog"), prior = priors_mort,
     chains = 4, cores = 4, iter = 2000, warmup = 1000, seed = 42, control = list(adapt_delta = 0.95))
   saveRDS(fit_mort_H0_2, here("models", "fit_mort_H0_2.rds"))
@@ -345,7 +344,7 @@ loo_compare(fit_mort_H0_1, fit_mort_H0_2)
 
 if (refit) {
   fit_mort_diet <- brm(
-    formula  = deaths | trials(at_risk) ~ offset(log(days)) + temp_z + diet + (1 | tank) + (1 | week) + (1 | obs),
+    formula  = deaths | trials(at_risk) ~ temp_z + diet + (1 | tank) + (1 | week) + (1 | obs),
     data     = mort,
     family   = binomial(link = "cloglog"),
     prior    = priors_mort,
@@ -367,7 +366,7 @@ summary(fit_mort_diet)
 
 if (refit) {
   fit_mort_density <- brm(
-    formula  = deaths | trials(at_risk) ~ offset(log(days)) + temp_z + start_density_z + (1 | tank) + (1 | week) + (1 | obs),
+    formula  = deaths | trials(at_risk) ~ temp_z + start_density_z + (1 | tank) + (1 | week) + (1 | obs),
     data     = mort,
     family   = binomial(link = "cloglog"),
     prior    = priors_mort,
@@ -388,7 +387,7 @@ summary(fit_mort_density)
 
 if (refit) {
   fit_mort_ABW <- brm(
-    formula  = deaths | trials(at_risk) ~ offset(log(days)) + month + start_ABW_z + (1 | tank) + (1 | week) + (1 | obs),
+    formula  = deaths | trials(at_risk) ~ temp_z + start_ABW_z + (1 | tank) + (1 | week) + (1 | obs),
     data     = mort,
     family   = binomial(link = "cloglog"),
     prior    = priors_mort,
@@ -410,7 +409,7 @@ summary(fit_mort_ABW)
 
 if (refit) {
   fit_mort_final <- brm(
-    formula  = deaths | trials(at_risk) ~ offset(log(days)) + temp_z + (1 | tank) + (1 | week) + (1 | obs),
+    formula  = deaths | trials(at_risk) ~ temp_z + (1 | tank) + (1 | week) + (1 | obs),
     data     = mort,
     family   = binomial(link = "cloglog"),
     prior    = priors_mort,
@@ -498,4 +497,3 @@ ggsave(here("figures", "p_survival_temperature.png"), p_survival, dpi = 300, wid
 
 ## NEXT: Run "05_economic_modelling.R"
 
-### END OF SCRIPT ###

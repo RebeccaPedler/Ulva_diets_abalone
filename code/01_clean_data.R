@@ -406,4 +406,4 @@ str(tank_df)
 # Save dataset
 write_csv(tank_df, here("data", "tank_data.csv"))
 
-## NEXT run "02_bayesian_mortality_models.R"
+## NEXT run "02_bayesian_weight_models.R"
