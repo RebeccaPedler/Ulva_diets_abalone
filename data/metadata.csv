@@ -28,7 +28,7 @@ condition,continious,au,"Condition factor of abalone calculated using Condition 
 date,text,DD/MM/YYYY,"Calendar date of each daily feed and tank-count record, covering the 131-day trial period (10/11/2025 to 20/03/2026)",per_capita_feed.csv
 feed_per_tank_kg,continious,"kilograms, kg","Daily feed ration delivered per tank, applied uniformly across all monitored tanks on that date",per_capita_feed.csv
 X_count,continious,"count, #","Estimated number of live abalone in tank X on the given date, interpolated between recorded mortality checks. Used as the daily divisor for X",per_capita_feed.csv
-X_per_cap_feed,continious,mg animal-1 day-1,"Feed delivered per live abalone in tank X on the given date, calculated as (feed_per_tank_kg x 1,000,000) / U01_count. Summed across all 131 days to give the cumulative per_capita_feed value.",per_capita_feed.csv
+X_per_cap_feed,continious,mg animal-1 day-1,"Feed delivered per live abalone in tank X on the given date, calculated as (feed_per_tank_kg x 1,000,000) / X01_count. Summed across all 131 days to give the cumulative per_capita_feed value.",per_capita_feed.csv
 mean_log_weight,continious,ln(g),"Tank-level mean of log-transformed abalone weight (log of weight_g), aggregated across all detected abalone in the tank",tank_data.csv
 mean_weight_g,continious,"grams, g","Tank-level mean abalone weight (weight_g), aggregated across all detected abalone in the tank",tank_data.csv
 mean_length_mm,continious,"milometers, mm","Tank-level mean abalone length (length_mm), aggregated across all detected abalone in the tank",tank_data.csv
