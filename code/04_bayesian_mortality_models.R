@@ -388,7 +388,7 @@ summary(fit_mort_density)
 
 if (refit) {
   fit_mort_ABW <- brm(
-    formula  = deaths | trials(at_risk) ~ offset(log(days)) + month + start_ABW_z + (1 | tank) + (1 | week) + (1 | obs),
+    formula  = deaths | trials(at_risk) ~ offset(log(days)) + temp_z + start_ABW_z + (1 | tank) + (1 | week) + (1 | obs),
     data     = mort,
     family   = binomial(link = "cloglog"),
     prior    = priors_mort,
