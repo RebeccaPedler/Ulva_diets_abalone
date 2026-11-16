@@ -406,7 +406,7 @@ if (refit) {
 
 summary(fit_mort_ABW)
 
-# MODEL H1: WATER TEMP (final with more iterations)
+# MODEL H1.2: WATER TEMP (final with more iterations)
 
 if (refit) {
   fit_mort_final <- brm(
