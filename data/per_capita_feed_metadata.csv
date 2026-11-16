@@ -1,8 +1,0 @@
-column,data_type,units,description
-date,text,DD/MM/YYYY,Calendar date of each record from the 131-day trial period (10/11/2025 to 20/03/2026)
-min_water_temperature,continious,degrees celcius,Minimum daily water temperature across the trial period
-max_water_temperature,continious,degrees celcius,Maximum daily water temperature across the trial period
-ave_water_temperature,continious,degrees celcius,Average daily water temperature across the trial period
-feed_per_tank_kg,continious,"kilograms, kg",Daily feed ration delivered to each tank. Blank records mean that tanks were not fed on that day.
-X_count,continious,"count, #","Estimated number of live abalone in tank X on the given date, interpolated between recorded mortality checks. Used as the daily divisor for X"
-X_per_cap_feed,continious,mg animal-1 day-1,"Feed delivered per live abalone in tank X on the given date, calculated as (feed_per_tank_kg x 1,000,000) / U01_count. Summed across all 131 days to give the cumulative per_capita_feed value."
