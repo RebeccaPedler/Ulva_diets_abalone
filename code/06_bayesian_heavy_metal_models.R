@@ -1,7 +1,6 @@
 # Project: A probabilistic cost–benefit analysis of macroalgal dietary supplementation in commercial greenlip abalone (Haliotis laevigata) aquaculture
 
-## Step 6: Bayesian heavy metal models (diet and tissue type)
-
+## Step 6: Bayesian heavy metal models 
 ### MODEL FITTING CONTROL
 
 ## Set refit = TRUE to refit all models from scratch and overwrite saved files
