@@ -221,7 +221,7 @@ for (m in metals) {
   }
 }
 
-                         ## DIAGNOSTICS FOR EACH FINAL MODEL
+## DIAGNOSTICS FOR EACH FINAL MODEL
 
 dir.create(here("figures", "diagnostics"), showWarnings = FALSE, recursive = TRUE)
 
