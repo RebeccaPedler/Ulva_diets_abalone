@@ -180,7 +180,7 @@ for (m in metals) {
       iter    = 4000,
       warmup  = 2000,
       seed    = 42,
-      control = list(adapt_delta = 0.95) # Raise to 0.99 if Lead shows divergent transitions
+      control = list(adapt_delta = 0.95) 
     )
     saveRDS(fits_final[[m]], file_final)
   } else {
@@ -256,7 +256,7 @@ extract_tissue_effects <- function(fit, m) {
 diet_effects   <- imap_dfr(fits_final, extract_diet_effects)
 tissue_effects <- imap_dfr(fits_final, extract_tissue_effects)
 
-# Diet effect as % change in concentration relative to the control diet, exp(b) - 1
+# Diet effect as % change in concentration 
 diet_summary <- diet_effects |>
   mutate(pct = (exp(b) - 1) * 100) |>
   group_by(metal, diet, tissue) |>
@@ -277,7 +277,7 @@ diet_summary <- diet_effects |>
 
 print(as.data.frame(diet_summary), row.names = FALSE)
 
-# Tissue effect as a fold change (viscera concentration / foot concentration), exp(b)
+# Tissue effect as a fold change 
 tissue_summary <- tissue_effects |>
   mutate(fold = exp(b)) |>
   group_by(metal, diet) |>
@@ -285,7 +285,7 @@ tissue_summary <- tissue_effects |>
     median_fold  = median(fold),
     lower95_fold = quantile(fold, 0.025),
     upper95_fold = quantile(fold, 0.975),
-    p_gt_0       = mean(b > 0), # probability that viscera concentration is higher than foot
+    p_gt_0       = mean(b > 0), 
     .groups      = "drop"
   ) |>
   mutate(
