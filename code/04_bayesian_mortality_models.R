@@ -454,11 +454,6 @@ p_pp_max <- pp_check(fit_mort_final, type = "stat", stat = "max")
 p_pp_max
 ggsave(here("figures", "diagnostics", "pp_check_mort_max.png"), plot = p_pp_max, dpi = 300, width = 6, height = 5, units = "in")
 
-# Trace plots (fixed effects and random-effect SDs only)
-p_trace <- mcmc_plot(fit_mort_final, type = "trace", variable = c("^b_", "^sd_"), regex = TRUE)
-p_trace
-ggsave(here("figures", "diagnostics", "trace_mort_final.png"), plot = p_trace, dpi = 300, width = 12, height = 8, units = "in")
-
 # MCMC plots
 final_mcmc_trace <- mcmc_trace(fit_mort_final, pars = c("b_Intercept", "b_temp_z", "sd_tank__Intercept", "sd_week__Intercept", "sd_obs__Intercept"))
 final_mcmc_trace
