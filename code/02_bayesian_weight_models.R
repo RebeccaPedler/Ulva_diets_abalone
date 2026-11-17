@@ -91,7 +91,6 @@ if (refit) {
 
 summary(fit_weight_default) 
 p_pp_default <- pp_check(fit_weight_default)
-ggsave(here("figures", "pp_check_default.png"), plot = p_pp_default, dpi = 300, width = 8, height = 6, units = "in")
 
 ## Feed availability matters - Ulva effect only shows when accounting for the fact that control tanks were provided with more feed per animal
 ## Effect of feed behaviour is 6% [4-9%]- Tanks that had less abalone = more feed available = grew more
@@ -119,7 +118,6 @@ if (refit) {
 
 summary(fit_weight_informative)
 p_pp_informative <- pp_check(fit_weight_informative)
-ggsave(here("figures", "pp_check_informative.png"), plot = p_pp_informative, dpi = 300, width = 8, height = 6, units = "in")
 
 # MODEL B3: Gaussian with less informative priors (wide normal distribution)
 
@@ -143,7 +141,6 @@ if (refit) {
 
 summary(fit_weight_informative_wide)
 p_pp_informative_wide <- pp_check(fit_weight_informative_wide)
-ggsave(here("figures", "pp_check_informative_wide.png"), plot = p_pp_informative_wide, dpi = 300, width = 8, height = 6, units = "in")
 
 # MODEL B4: Sensitivity test (add start_density_z) - with weakly informative priors
 
@@ -167,7 +164,6 @@ if (refit) {
 
 summary(fit_weight_sens)
 p_pp_sens <- pp_check(fit_weight_sens)
-ggsave(here("figures", "pp_check_sens.png"), plot = p_pp_sens, dpi = 300, width = 8, height = 6, units = "in")
 
 ## Start density has no effect
 
@@ -193,8 +189,6 @@ if (refit) {
 
 summary(fit_weight_sens2)
 p_pp_sens2 <- pp_check(fit_weight_sens2)
-ggsave(here("figures", "pp_check_sens2.png"), plot = p_pp_sens2, dpi = 300, width = 8, height = 6, units = "in")
-
 # No effect of start weight
 
 # LEAVE-ONE-OUT COMPARISON
@@ -285,27 +279,27 @@ ggsave(here("figures", "p_effects.png"), plot = p_effects, dpi = 300, width = 9,
 # PP check - density overlay
 p_pp_density <- pp_check(fit_weight_final)
 p_pp_density
-ggsave(here("figures", "pp_check_weight_density.png"), plot = p_pp_density, dpi = 300, width = 8, height = 6, units = "in")
+ggsave(here("figures", "diagnostics", "pp_check_weight_density.png"), plot = p_pp_density, dpi = 300, width = 8, height = 6, units = "in")
 
 # PP check - mean 
 p_pp_mean <- pp_check(fit_weight_final, type = "stat", stat = "mean")
 p_pp_mean
-ggsave(here("figures", "pp_check_weight_mean.png"), plot = p_pp_mean, dpi = 300, width = 6, height = 5, units = "in")
+ggsave(here("figures", "diagnostics", "pp_check_weight_mean.png"), plot = p_pp_mean, dpi = 300, width = 6, height = 5, units = "in")
 
 # PP check - SD 
 p_pp_sd <- pp_check(fit_weight_final, type = "stat", stat = "sd")
 p_pp_sd
-ggsave(here("figures", "pp_check_weight_sd.png"), plot = p_pp_sd, dpi = 300, width = 6, height = 5, units = "in")
+ggsave(here("figures", "diagnostics", "pp_check_weight_sd.png"), plot = p_pp_sd, dpi = 300, width = 6, height = 5, units = "in")
 
 # Trace plots
 p_trace <- mcmc_plot(fit_weight_final, type = "trace")
 p_trace
-ggsave(here("figures", "trace_weight_final.png"), plot = p_trace, dpi = 300, width = 12, height = 8, units = "in")
+ggsave(here("figures", "diagnostics", "trace_weight_final.png"), plot = p_trace, dpi = 300, width = 12, height = 8, units = "in")
 
 # MCMC plots
 final_mcmc_trace <- mcmc_trace(fit_weight_final, pars = c("b_Intercept", "b_dietulva", "b_dietwakame", "b_per_capita_feed_z", "sigma"))
 final_mcmc_trace
-ggsave(here("figures", "final_mcmc_trace.png"), plot = final_mcmc_trace, dpi = 300, width = 12, height = 8, units = "in")
+ggsave(here("figures", "diagnostics", "final_mcmc_trace.png"), plot = final_mcmc_trace, dpi = 300, width = 12, height = 8, units = "in")
 
 # LOO summary
 loo_weight_final <- loo(fit_weight_final)
@@ -378,13 +372,8 @@ summary(fit_hier)
 
 # Diagnostic checks 
 fit_hier_trace <- mcmc_trace(fit_hier, pars = c("b_dietulva", "b_dietwakame", "b_per_capita_feed_z", "sd_tank__Intercept", "sigma"))
-ggsave(here("figures", "fit_hier_trace.png"), plot = fit_hier_trace, dpi = 300, width = 6, height = 5, units = "in")
- 
 fit_hier_ppcheck <- pp_check(fit_hier)
-ggsave(here("figures", "fit_hier.png"), plot = fit_hier_ppcheck, dpi = 300, width = 6, height = 5, units = "in")
-
 fit_hier_mean <- pp_check(fit_hier, type = "stat", stat = "mean")
-ggsave(here("figures", "fit_hier_mean.png"), plot = fit_hier_mean, dpi = 300, width = 6, height = 5, units = "in")
 
 b_hier <- as_draws_df(fit_hier)$b_dietulva
 b_agg  <- as_draws_df(fit_weight_final)$b_dietulva
