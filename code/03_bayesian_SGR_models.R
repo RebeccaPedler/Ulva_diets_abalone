@@ -255,11 +255,6 @@ p_pp_sd <- pp_check(fit_sgr_final, type = "stat", stat = "sd")
 p_pp_sd
 ggsave(here("figures", "diagnostics", "pp_check_sgr_sd.png"), plot = p_pp_sd, dpi = 300, width = 6, height = 5, units = "in")
 
-# Trace plots
-p_trace <- mcmc_plot(fit_sgr_final, type = "trace")
-p_trace
-ggsave(here("figures", "diagnostics", "trace_sgr_final.png"), plot = p_trace, dpi = 300, width = 12, height = 8, units = "in")
-
 # MCMC plots
 final_mcmc_trace <- mcmc_trace(fit_sgr_final, pars = c("b_Intercept", "b_dietulva", "b_dietwakame", "b_per_capita_feed_z", "b_start_ABW_z", "sigma"))
 final_mcmc_trace
