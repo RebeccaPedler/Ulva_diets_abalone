@@ -294,7 +294,7 @@ ggsave(here("figures", "diagnostics", "pp_check_weight_sd.png"), plot = p_pp_sd,
 # MCMC plots
 final_mcmc_trace <- mcmc_trace(fit_weight_final, pars = c("b_Intercept", "b_dietulva", "b_dietwakame", "b_per_capita_feed_z", "sigma"))
 final_mcmc_trace
-ggsave(here("figures", "diagnostics", "final_mcmc_trace.png"), plot = final_mcmc_trace, dpi = 300, width = 12, height = 8, units = "in")
+ggsave(here("figures", "diagnostics", "final_weight_mcmc_trace.png"), plot = final_mcmc_trace, dpi = 300, width = 12, height = 8, units = "in")
 
 # LOO summary
 loo_weight_final <- loo(fit_weight_final)
