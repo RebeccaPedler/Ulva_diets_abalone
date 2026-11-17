@@ -108,7 +108,6 @@ if (refit) {
 
 summary(fit_sgr_default) 
 p_pp_default <- pp_check(fit_sgr_default)
-ggsave(here("figures", "pp_check_sgr_default.png"), plot = p_pp_default, dpi = 300, width = 8, height = 6, units = "in")
 
 ## Start weight and feed availability also matter for SGR (smaller tanks that were fed more have higher SGR)
 
@@ -136,7 +135,6 @@ if (refit) {
 
 summary(fit_sgr_informative)
 p_pp_informative <- pp_check(fit_sgr_informative)
-ggsave(here("figures", "pp_check_sgr_informative.png"), plot = p_pp_informative, dpi = 300, width = 8, height = 6, units = "in")
 
 # MODEL B3: Gaussian with less informative priors (wide normal distribution)
 
@@ -160,8 +158,6 @@ if (refit) {
 
 summary(fit_sgr_informative_wide)
 p_pp_informative_wide <- pp_check(fit_sgr_informative_wide)
-ggsave(here("figures", "pp_check_sgr_informative_wide.png"), plot = p_pp_informative_wide, dpi = 300, width = 8, height = 6, units = "in")
-
 
 # LEAVE-ONE-OUT COMPARISON
 
@@ -336,7 +332,6 @@ if (refit) {
 }
 
 p_pp_prior_only <- pp_check(fit_prior_only) # Check that the priors produce plausible SGR values
-ggsave(here("figures", "pp_check_sgr_prior_only.png"), plot = p_pp_prior_only, dpi = 300, width = 8, height = 6, units = "in")
 
 ### SUMMARY TABLE
 
