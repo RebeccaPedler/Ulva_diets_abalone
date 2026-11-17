@@ -243,27 +243,27 @@ ggsave(here("figures", "p_effects_sgr.png"), plot = p_effects, dpi = 300, width 
 # PP check - density overlay
 p_pp_density <- pp_check(fit_sgr_final)
 p_pp_density
-ggsave(here("figures", "pp_check_sgr_density.png"), plot = p_pp_density, dpi = 300, width = 8, height = 6, units = "in")
+ggsave(here("figures", "diagnostics", "pp_check_sgr_density.png"), plot = p_pp_density, dpi = 300, width = 8, height = 6, units = "in")
 
 # PP check - mean 
 p_pp_mean <- pp_check(fit_sgr_final, type = "stat", stat = "mean")
 p_pp_mean
-ggsave(here("figures", "pp_check_sgr_mean.png"), plot = p_pp_mean, dpi = 300, width = 6, height = 5, units = "in")
+ggsave(here("figures", "diagnostics", "pp_check_sgr_mean.png"), plot = p_pp_mean, dpi = 300, width = 6, height = 5, units = "in")
 
 # PP check - SD 
 p_pp_sd <- pp_check(fit_sgr_final, type = "stat", stat = "sd")
 p_pp_sd
-ggsave(here("figures", "pp_check_sgr_sd.png"), plot = p_pp_sd, dpi = 300, width = 6, height = 5, units = "in")
+ggsave(here("figures", "diagnostics", "pp_check_sgr_sd.png"), plot = p_pp_sd, dpi = 300, width = 6, height = 5, units = "in")
 
 # Trace plots
 p_trace <- mcmc_plot(fit_sgr_final, type = "trace")
 p_trace
-ggsave(here("figures", "trace_sgr_final.png"), plot = p_trace, dpi = 300, width = 12, height = 8, units = "in")
+ggsave(here("figures", "diagnostics", "trace_sgr_final.png"), plot = p_trace, dpi = 300, width = 12, height = 8, units = "in")
 
 # MCMC plots
 final_mcmc_trace <- mcmc_trace(fit_sgr_final, pars = c("b_Intercept", "b_dietulva", "b_dietwakame", "b_per_capita_feed_z", "b_start_ABW_z", "sigma"))
 final_mcmc_trace
-ggsave(here("figures", "final_sgr_mcmc_trace.png"), plot = final_mcmc_trace, dpi = 300, width = 12, height = 8, units = "in")
+ggsave(here("figures", "diagnostics", "final_sgr_mcmc_trace.png"), plot = final_mcmc_trace, dpi = 300, width = 12, height = 8, units = "in")
 
 # LOO summary
 loo_sgr_final <- loo(fit_sgr_final)
