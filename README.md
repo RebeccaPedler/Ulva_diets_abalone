@@ -26,7 +26,8 @@ Ulva_diets_abalone/
 │   └── metadata.csv                     # Data dictionary for all data files
 ├── models/                              # Saved brms model fits (.rds), written by scripts 01-04 and 06
 │                                  
-├── figures/                             # Figures from scripts 01-05 (data summaries, diagnostics, results)
+├── figures/                             # Figures from scripts 01-06 
+    ├── diagnostics                      # Diagnostic plots for Bayesian models (02 - 04)                          
 ├── outputs/                             # Results from 05_economic_models.R saved as csv files                       
 └── README.md
 ```
