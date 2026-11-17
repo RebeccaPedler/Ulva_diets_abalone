@@ -427,9 +427,40 @@ if (refit) {
 
 summary(fit_mort_final)
 
-### PLOT MORTALITY
+## Check diagnostics
 
-# Survival (% of starting count) for each tank at the end of each week
+# PP check - observed vs predicted death counts (bars suit discrete counts)
+p_pp_bars <- pp_check(fit_mort_final, type = "bars", ndraws = 100)
+p_pp_bars
+ggsave(here("figures", "diagnostics", "pp_check_mort_bars.png"), plot = p_pp_bars, dpi = 300, width = 8, height = 6, units = "in")
+
+# PP check - density overlay
+p_pp_density <- pp_check(fit_mort_final, ndraws = 100)
+p_pp_density
+ggsave(here("figures", "diagnostics", "pp_check_mort_density.png"), plot = p_pp_density, dpi = 300, width = 8, height = 6, units = "in")
+
+# PP check - mean
+p_pp_mean <- pp_check(fit_mort_final, type = "stat", stat = "mean")
+p_pp_mean
+ggsave(here("figures", "diagnostics", "pp_check_mort_mean.png"), plot = p_pp_mean, dpi = 300, width = 6, height = 5, units = "in")
+
+# PP check - SD
+p_pp_sd <- pp_check(fit_mort_final, type = "stat", stat = "sd")
+p_pp_sd
+ggsave(here("figures", "diagnostics", "pp_check_mort_sd.png"), plot = p_pp_sd, dpi = 300, width = 6, height = 5, units = "in")
+
+# PP check - maximum (does the model reproduce the February peak?)
+p_pp_max <- pp_check(fit_mort_final, type = "stat", stat = "max")
+p_pp_max
+ggsave(here("figures", "diagnostics", "pp_check_mort_max.png"), plot = p_pp_max, dpi = 300, width = 6, height = 5, units = "in")
+
+# MCMC plots
+final_mcmc_trace <- mcmc_trace(fit_mort_final, pars = c("b_Intercept", "b_temp_z", "sd_tank__Intercept", "sd_week__Intercept", "sd_obs__Intercept"))
+final_mcmc_trace
+ggsave(here("figures", "diagnostics", "final_mort_mcmc_trace.png"), plot = final_mcmc_trace, dpi = 300, width = 12, height = 8, units = "in")
+
+### PLOT MORTALITY
+# Survival (% of starting count) 
 surv_tank <- mort |>
   arrange(tank, date) |>
   group_by(tank) |>
@@ -446,7 +477,7 @@ surv_diet <- bind_rows(surv_start, surv_tank) |>
   summarise(value = mean(survival), .groups = "drop") |>
   mutate(series = recode(as.character(diet), control = "Control", ulva = "Ulva", wakame = "Wakame"))
 
-# Daily water temperature straight from the daily readings
+# Daily water temperature
 temp_daily <- df_counts |>
   transmute(date = as.Date(date),
             temp_mean = ave_water_temperature,
@@ -456,7 +487,7 @@ temp_daily <- df_counts |>
 
 # Map temperature onto survival axis
 surv_lim <- c(60, 100)
-temp_lim <- c(16, 24)    # covers the full trial range (16.7 to 23.9 C)
+temp_lim <- c(16, 24)    
 temp_to_surv <- function(t) surv_lim[1] + (t - temp_lim[1]) / diff(temp_lim) * diff(surv_lim)
 surv_to_temp <- function(s) temp_lim[1] + (s - surv_lim[1]) / diff(surv_lim) * diff(temp_lim)
 
@@ -472,7 +503,6 @@ plot_df <- bind_rows(surv_diet |> select(date, value, series),
   mutate(series = factor(series, levels = c("Control", "Ulva", "Wakame", "Water temperature")))
 
 p_survival <- ggplot(plot_df, aes(date, value, colour = series, linetype = series)) +
-  # daily min-max band drawn first so it sits behind the lines
   geom_ribbon(data = temp_df, aes(x = date, ymin = ymin, ymax = ymax),
               inherit.aes = FALSE, fill = "grey70", alpha = 0.5) +
   geom_line(linewidth = 0.9) +

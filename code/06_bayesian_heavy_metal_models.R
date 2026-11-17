@@ -1,8 +1,8 @@
 # Project: A probabilistic cost–benefit analysis of macroalgal dietary supplementation in commercial greenlip abalone (Haliotis laevigata) aquaculture
 
 ## Step 6: Bayesian heavy metal models 
-### MODEL FITTING CONTROL
 
+### MODEL FITTING CONTROL
 ## Set refit = TRUE to refit all models from scratch and overwrite saved files
 ## Set refit = FALSE to load previously fitted models from disk
 ## Change to TRUE any time you modify model parameters or data
@@ -180,7 +180,7 @@ for (m in metals) {
       iter    = 4000,
       warmup  = 2000,
       seed    = 42,
-      control = list(adapt_delta = 0.95) # Raise to 0.99 if Lead shows divergent transitions
+      control = list(adapt_delta = 0.95) 
     )
     saveRDS(fits_final[[m]], file_final)
   } else {
@@ -221,6 +221,48 @@ for (m in metals) {
   }
 }
 
+## DIAGNOSTICS FOR EACH FINAL MODEL
+
+dir.create(here("figures", "diagnostics"), showWarnings = FALSE, recursive = TRUE)
+
+diag_tbl <- list()
+
+for (m in metals) {
+  fit <- fits_final[[m]]
+  tag <- tolower(m)
+  cat("\n=====", m, "=====\n")
+
+  # PP check - density overlay
+  p_dens <- pp_check(fit, ndraws = 100)
+  ggsave(here("figures", "diagnostics", paste0("pp_check_", tag, "_density.png")), plot = p_dens, dpi = 300, width = 8, height = 6, units = "in")
+
+  # PP check - mean
+  p_mean <- pp_check(fit, type = "stat", stat = "mean")
+  ggsave(here("figures", "diagnostics", paste0("pp_check_", tag, "_mean.png")), plot = p_mean, dpi = 300, width = 6, height = 5, units = "in")
+
+  # PP check - SD
+  p_sd <- pp_check(fit, type = "stat", stat = "sd")
+  ggsave(here("figures", "diagnostics", paste0("pp_check_", tag, "_sd.png")), plot = p_sd, dpi = 300, width = 6, height = 5, units = "in")
+
+  # Trace plots (fixed effects, random-effect SDs and family parameters only)
+  p_trace <- mcmc_plot(fit, type = "trace", variable = c("^b_", "^sd_", "^sigma", "^shape", "^phi", "^nu"), regex = TRUE)
+  ggsave(here("figures", "diagnostics", paste0("trace_", tag, ".png")), plot = p_trace, dpi = 300, width = 12, height = 8, units = "in")
+
+  # Numeric diagnostics for Methods / supplement
+  draws <- posterior::summarise_draws(
+    as_draws_df(fit, variable = c("^b_", "^sd_", "^sigma", "^shape", "^phi", "^nu"), regex = TRUE),
+    "rhat", "ess_bulk", "ess_tail"
+  )
+  np <- nuts_params(fit)
+  diag_tbl[[m]] <- data.frame(
+    metal        = m,
+    max_rhat     = max(draws$rhat, na.rm = TRUE),
+    min_ess_bulk = min(draws$ess_bulk, na.rm = TRUE),
+    min_ess_tail = min(draws$ess_tail, na.rm = TRUE),
+    divergences  = sum(np$Value[np$Parameter == "divergent__"])
+  )
+}
+
 ### GET PROBABILITIES
 
 for (m in metals) {
@@ -256,7 +298,7 @@ extract_tissue_effects <- function(fit, m) {
 diet_effects   <- imap_dfr(fits_final, extract_diet_effects)
 tissue_effects <- imap_dfr(fits_final, extract_tissue_effects)
 
-# Diet effect as % change in concentration relative to the control diet, exp(b) - 1
+# Diet effect as % change in concentration 
 diet_summary <- diet_effects |>
   mutate(pct = (exp(b) - 1) * 100) |>
   group_by(metal, diet, tissue) |>
@@ -277,7 +319,7 @@ diet_summary <- diet_effects |>
 
 print(as.data.frame(diet_summary), row.names = FALSE)
 
-# Tissue effect as a fold change (viscera concentration / foot concentration), exp(b)
+# Tissue effect as a fold change 
 tissue_summary <- tissue_effects |>
   mutate(fold = exp(b)) |>
   group_by(metal, diet) |>
@@ -285,7 +327,7 @@ tissue_summary <- tissue_effects |>
     median_fold  = median(fold),
     lower95_fold = quantile(fold, 0.025),
     upper95_fold = quantile(fold, 0.975),
-    p_gt_0       = mean(b > 0), # probability that viscera concentration is higher than foot
+    p_gt_0       = mean(b > 0), 
     .groups      = "drop"
   ) |>
   mutate(
