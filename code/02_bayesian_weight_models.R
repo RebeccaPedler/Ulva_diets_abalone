@@ -253,7 +253,9 @@ p_weight <- plot_effects(
   centre    = "median", interval = "qi",      
   xlab      = "Effect on final weight (% change)",
   show_prob = TRUE
-)
+  ) +
+  labs(tag = "A)") +
+  theme(plot.tag = element_text(face = "bold", size = 16))
 
 p_weight
 ggsave(here("figures", "p_weight.png"), plot = p_weight, dpi = 300, width = 9, height = 6, units = "in")
