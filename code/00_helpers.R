@@ -27,6 +27,9 @@ posterior_summary_table <- function(model, direction = c("greater", "less"), dig
 }
 
 # FUNCTION FOR GETTING POSTERIOR PROBABILITY PLOTS
+
+# Font
+windowsFonts(`Times New Roman` = windowsFont("Times New Roman"))
                  
 # Adapted from Recio et al. (2025), Animal Behaviour 222:123106
 # (github.com/Pablo-Recio/CORT_Temp_Behavioural_flexibility, R/func.r:
@@ -136,8 +139,8 @@ plot_effects <- function(effects,
     geom_point(data = summ, aes(x = centre_val, y = y0), size = 3, colour = "black")
 
   if (show_prob) {
-    p <- p + geom_text(data = summ, aes(x = Inf, y = y0 + 0.12, label = lab),
-                       hjust = 1.05, vjust = 0, size = base_size * 0.26, colour = "grey25")
+    p <- p + geom_text(data = summ, aes(x = Inf, y = y0 + 0.12, label = lab), hjust = 1.05,
+                       vjust = 0, size = base_size * 0.26, colour = "grey25", family = "Times New Roman")
   }
 
   p <- p +
@@ -155,9 +158,8 @@ plot_effects <- function(effects,
       axis.text.y  = element_text(size = ylab_size),
       axis.title.x = element_text(size = title_size, margin = margin(t = 10)),
       strip.text   = element_text(face = "bold"),
-      text         = element_text(family = "Times")
+      text         = element_text(family = "Times New Roman")
     )
-
   if (has_panel) p <- p + facet_wrap(~ panel, scales = facet_scales, ncol = facet_ncol)
   p
 }
