@@ -529,13 +529,13 @@ p_survival <- ggplot(plot_df, aes(date, value, colour = series, linetype = serie
   theme_classic(base_size = 12) +
   theme(panel.grid        = element_blank(),
         axis.ticks.length = unit(0.2, "cm"),
-        text              = element_text(family = "Times"),
+        text              = element_text(family = "Times New Roman"),
         legend.position   = "top") +
         labs(tag = "A)") +
         theme(plot.tag = element_text(face = "bold", size = 16))
     
 p_survival
-ggsave(here("figures", "p_survival_temperature.png"), p_survival, dpi = 300, width = 8, height = 5)
+ggsave(here("figures", "p_survival_temperature.png"), p_survival, dpi = 300, width = 10, height = 7)
 
 # Plot posterior distributions
 
@@ -554,5 +554,6 @@ p_mort <- plot_effects(
 
 p_mort
 ggsave(here("figures", "p_effects_mortality.png"), plot = p_mort, dpi = 300, width = 9, height = 6, units = "in")
+
 
 ## NEXT: Run "05_economic_modelling.R"
