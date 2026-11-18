@@ -460,6 +460,7 @@ final_mcmc_trace
 ggsave(here("figures", "diagnostics", "final_mort_mcmc_trace.png"), plot = final_mcmc_trace, dpi = 300, width = 12, height = 8, units = "in")
 
 ### PLOT MORTALITY
+
 # Survival (% of starting count) 
 surv_tank <- mort |>
   arrange(tank, date) |>
@@ -499,31 +500,59 @@ temp_df <- temp_daily |>
             series = "Water temperature")
 
 plot_df <- bind_rows(surv_diet |> select(date, value, series),
-                     temp_df   |> select(date, value, series)) |>
-  mutate(series = factor(series, levels = c("Control", "Ulva", "Wakame", "Water temperature")))
+           temp_df   |> select(date, value, series)) |>
+           mutate(series = factor(series, levels = c("Control", "Ulva", "Wakame", "Water temperature")))
 
+series_labels <- function(x) {
+  parse(text = ifelse(x == "Ulva", "italic('Ulva')", paste0("'", x, "'")),
+        keep.source = FALSE)
+}
+
+# Plot 
 p_survival <- ggplot(plot_df, aes(date, value, colour = series, linetype = series)) +
-  geom_ribbon(data = temp_df, aes(x = date, ymin = ymin, ymax = ymax),
-              inherit.aes = FALSE, fill = "grey70", alpha = 0.5) +
+  geom_ribbon(
+        data = temp_df, aes(x = date, ymin = ymin, ymax = ymax), inherit.aes = FALSE, fill = "grey70", alpha = 0.5) +
   geom_line(linewidth = 0.9) +
-  scale_colour_manual(values = c(Control = "#1F5FBF", Ulva = "#2E9E4F", Wakame = "#E8801A",
-                                 `Water temperature` = "black")) +
-  scale_linetype_manual(values = c(Control = "solid", Ulva = "dotted", Wakame = "dashed",
-                                   `Water temperature` = "solid")) +
+  scale_colour_manual(
+        values = c(Control = "#1F5FBF", Ulva = "#2E9E4F", Wakame = "#E8801A", `Water temperature` = "black"),
+        labels = series_labels) +
+  scale_linetype_manual(
+        values = c(Control = "solid", Ulva = "dotted", Wakame = "dashed", `Water temperature` = "solid"),
+        labels = series_labels) +
   scale_x_date(breaks = seq(as.Date("2025-11-01"), as.Date("2026-03-01"), by = "month"),
-               labels = date_format("%b"),
-               limits = c(start_date, end_date), expand = expansion(mult = c(0.01, 0.02))) +
+        labels = date_format("%b"),
+        limits = c(start_date, end_date), expand = expansion(mult = c(0.01, 0.02))) +
   scale_y_continuous(expand = c(0, 0),
-                     sec.axis = sec_axis(~ surv_to_temp(.), name = "Water temperature (°C)")) +
+        sec.axis = sec_axis(~ surv_to_temp(.), name = "Water temperature (°C)")) +
   coord_cartesian(ylim = surv_lim) +
   labs(x = "Month", y = "Survival (%)", colour = NULL, linetype = NULL) +
   theme_classic(base_size = 12) +
-  theme(panel.grid = element_blank(),
+  theme(panel.grid        = element_blank(),
         axis.ticks.length = unit(0.2, "cm"),
-        legend.position = "top")
-
+        text              = element_text(family = "Times"),
+        legend.position   = "top") +
+        labs(tag = "A)") +
+        theme(plot.tag = element_text(face = "bold", size = 16))
+    
 p_survival
 ggsave(here("figures", "p_survival_temperature.png"), p_survival, dpi = 300, width = 8, height = 5)
 
-## NEXT: Run "05_economic_modelling.R"
+# Plot posterior distributions
 
+fit_mort_final <- readRDS(here("models", "fit_mort_final.rds"))
+
+eff_mort <- get_effects(fit_mort_final, c(temperature = "b_temp_z"), transform = exp)
+
+p_mort <- plot_effects(
+  eff_mort, ref = 1,
+  colours = c(temperature = "#B50101"),
+  labels  = c(temperature = "''"),
+  xlab    = "Hazard ratio for mortality", show_prob = TRUE
+) +
+  labs(tag = "B)") +
+  theme(plot.tag = element_text(face = "bold", size = 16))
+
+p_mort
+ggsave(here("figures", "p_effects_mortality.png"), plot = p_mort, dpi = 300, width = 9, height = 6, units = "in")
+
+## NEXT: Run "05_economic_modelling.R"
