@@ -309,9 +309,9 @@ p_cor <- ggcorrplot(
     axis.line.y = element_line(color = "black", linewidth = 0.6),
     axis.title.x = element_blank(),
     axis.title.y = element_blank(),
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
     axis.text.y = element_text(size = 12),
-    text              = element_text(family = "Times New Roman"),
+    text        = element_text(family = "Times New Roman"),
   )
 
 p_cor
