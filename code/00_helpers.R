@@ -78,9 +78,9 @@ plot_effects <- function(effects,
                          slab_height  = 0.8,
                          slab_alpha   = 0.6,
                          show_prob    = FALSE,
-                         base_size    = 14,
-                         title_size   = 16,   
-                         ylab_size    = 14,   
+                         base_size    = 12,
+                         title_size   = 12,   
+                         ylab_size    = 12,   
                          xtext_size   = 12,   
                          facet_scales = "free_x",
                          facet_ncol   = NULL) {
@@ -151,7 +151,9 @@ plot_effects <- function(effects,
       axis.line.x  = element_line(colour = "black", linewidth = 0.6),
       axis.line.y  = element_line(colour = "black", linewidth = 0.6),
       axis.text    = element_text(colour = "black"),
-      axis.title.x = element_text(face = "bold", margin = margin(t = 10)),
+      axis.text.x  = element_text(size = xtext_size),
+      axis.text.y  = element_text(size = ylab_size),
+      axis.title.x = element_text(size = title_size, face = "bold", margin = margin(t = 10)),
       strip.text   = element_text(face = "bold")
     )
 
