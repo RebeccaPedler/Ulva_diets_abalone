@@ -79,7 +79,9 @@ plot_effects <- function(effects,
                          slab_alpha   = 0.6,
                          show_prob    = FALSE,
                          base_size    = 14,
-                         text_size    = 14, 
+                         title_size   = 16,   
+                         ylab_size    = 14,   
+                         xtext_size   = 12,   
                          facet_scales = "free_x",
                          facet_ncol   = NULL) {
 
