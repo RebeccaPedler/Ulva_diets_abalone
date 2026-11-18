@@ -249,7 +249,7 @@ eff_weight <- get_effects(fit_weight_final, weight_specs, transform = pct)
 p_weight <- plot_effects(
   eff_weight,
   colours   = c(ulva = diet_cols[["ulva"]], wakame = diet_cols[["wakame"]], feed = "grey60"),
-  labels    = c(ulva = "italic('Ulva')", wakame = "'Wakame'", feed = "'Feed availability'"),
+  labels    = c(ulva = "bolditalic('Ulva')", wakame = "bold('Wakame')", feed = "bold('Feed availability')"),
   centre    = "median", interval = "qi",      
   xlab      = "Effect on final weight (% change)",
   show_prob = TRUE
