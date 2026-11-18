@@ -153,8 +153,9 @@ plot_effects <- function(effects,
       axis.text    = element_text(colour = "black"),
       axis.text.x  = element_text(size = xtext_size),
       axis.text.y  = element_text(size = ylab_size),
-      axis.title.x = element_text(size = title_size, face = "bold", margin = margin(t = 10)),
-      strip.text   = element_text(face = "bold")
+      axis.title.x = element_text(size = title_size, margin = margin(t = 10)),
+      strip.text   = element_text(face = "bold"),
+      text         = element_text(family = "Times")
     )
 
   if (has_panel) p <- p + facet_wrap(~ panel, scales = facet_scales, ncol = facet_ncol)
