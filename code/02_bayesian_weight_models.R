@@ -258,7 +258,7 @@ p_weight <- plot_effects(
   theme(plot.tag = element_text(face = "bold", size = 16))
 
 p_weight
-ggsave(here("figures", "p_weight.png"), plot = p_weight, dpi = 300, width = 9, height = 6, units = "in")
+ggsave(here("figures", "p_weight.png"), plot = p_weight, device = ragg::agg_png, dpi = 300, width = 9, height = 6, units = "in")
 
 ## Check diagnostics
 
