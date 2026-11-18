@@ -161,12 +161,8 @@ box_tank <- function(var, ylab) {
 p_wt_hist <- hist_diet("weight_g", "Final weight (g)") 
 p_wt_hist
 
-ggsave(here("figures", "p_wt_hist.png"), plot = p_wt_hist, dpi = 300, width = 9, height = 8, units = "in")
- 
 p_wt_log_hist <- hist_diet("log_weight", "log(weight) (g)") 
 p_wt_log_hist
-
-ggsave(here("figures", "p_wt_log_hist.png"), plot = p_wt_log_hist, dpi = 300, width = 9, height = 8, units = "in")
 
 # Combine plots
 p_combined <- p_wt_hist + p_wt_log_hist +
@@ -175,12 +171,8 @@ p_combined <- p_wt_hist + p_wt_log_hist +
 
 p_combined
 
-ggsave(here("figures", "p_wt_combined_hist.png"), plot = p_combined, dpi = 300, width = 14, height = 8, units = "in")
-
 p_wt_box  <- box_tank("weight_g", "Final weight (g)") 
 p_wt_box
-
-ggsave(here("figures", "p_wt_box.png"), plot = p_wt_box, dpi = 300, width = 9, height = 8, units = "in")
 
 ## Numerical summarry
 
@@ -282,9 +274,26 @@ cor_p <- cor_pmat(mod_mat)
 print(round(cor_r, 3))
 print(format(round(cor_p, 4)))
  
+# Format axis labels
+cor_labels <- c(
+  start_ABL       = "Start ABL (mm)",
+  start_ABW       = "Start ABW (g)",
+  start_density   = "Start density (kg/m²)",
+  start_biomass   = "Start biomass (kg)",
+  end_density     = "End density (kg/m²)",
+  mortality_p     = "Mortality (%)",
+  per_capita_feed = "Per capita feed (mg/abalone/day)"
+)
+
+# Relabel a copy of the correlation matrix so cor_r is left unchanged
+stopifnot(all(colnames(cor_r) %in% names(cor_labels)))
+cor_r_lab <- cor_r
+colnames(cor_r_lab) <- unname(cor_labels[colnames(cor_r)])
+rownames(cor_r_lab) <- unname(cor_labels[rownames(cor_r)])
+
 # Correlation heatmap
 p_cor <- ggcorrplot(
-  cor_r,
+  cor_r_lab,
   method   = "square",
   type     = "lower",
   lab      = TRUE,
@@ -300,10 +309,12 @@ p_cor <- ggcorrplot(
     axis.line.y = element_line(color = "black", linewidth = 0.6),
     axis.title.x = element_blank(),
     axis.title.y = element_blank(),
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)
-  ) 
- 
-print(p_cor)
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 12),
+    axis.text.y = element_text(size = 12),
+    text              = element_text(family = "Times New Roman"),
+  )
+
+p_cor
 
 ggsave(here("figures", "p_cor.png"), plot = p_cor, dpi = 300, width = 12, height = 6, units  = "in")
 
