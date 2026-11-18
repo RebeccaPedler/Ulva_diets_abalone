@@ -339,4 +339,34 @@ tissue_summary <- tissue_effects |>
 
 print(as.data.frame(tissue_summary), row.names = FALSE)
 
+# Create forest plots
+fits_final <- setNames(
+  lapply(metals, function(m) readRDS(here("models", paste0("fit_hm_", tolower(m), "_final.rds")))),
+  metals
+)
+
+hm_specs <- c("Ulva (foot)"      = "b_dietulva",
+              "Wakame (foot)"    = "b_dietwakame",
+              "Ulva (viscera)"   = "b_dietulva + `b_dietulva:tissueviscera`",
+              "Wakame (viscera)" = "b_dietwakame + `b_dietwakame:tissueviscera`")
+
+hm_fill <- c("Ulva (foot)"      = "#8FD1A5", "Wakame (foot)"    = "#F4B880",   # foot = light
+             "Ulva (viscera)"   = "#2E9E4F", "Wakame (viscera)" = "#E8801A")   # viscera = dark
+
+hm_labels <- c("Ulva (foot)"      = "bolditalic('Ulva')~bold('(foot)')",
+               "Wakame (foot)"    = "bold('Wakame (foot)')",
+               "Ulva (viscera)"   = "bolditalic('Ulva')~bold('(viscera)')",
+               "Wakame (viscera)" = "bold('Wakame (viscera)')")
+
+eff_hm <- dplyr::bind_rows(lapply(metals, function(m)
+  get_effects(fits_final[[m]], hm_specs, transform = pct, panel = m)))
+eff_hm$panel <- factor(eff_hm$panel, levels = metals)
+
+p_hm <- plot_effects(eff_hm, colours = hm_fill, labels = hm_labels,
+                     centre = "median", interval = "qi",
+                     xlab = "Change in concentration (%)",
+                     facet_ncol = 2)
+p_hm
+ggsave(here("figures", "p_hm_forest.png"), p_hm, dpi = 300, width = 12, height = 12, units = "in")
+
 ### END OF SCRIPT ###

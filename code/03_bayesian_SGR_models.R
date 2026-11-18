@@ -201,42 +201,28 @@ summary(fit_sgr_final)
 posterior_summary_table(fit_sgr_final)
 
 ### PLOT FINAL MODEL
-# SGR effects are already on the % per day scale, so no back-transformation is needed
-draws_diet <- fit_sgr_final |>
-  spread_draws(b_dietulva, b_dietwakame) |>
-  mutate(
-    ulva   = b_dietulva,
-    wakame = b_dietwakame
-  ) |>
-  select(.draw, ulva, wakame) |>
-  pivot_longer(c(ulva, wakame), names_to = "diet", values_to = "sgr_gain") |>
-  mutate(diet = factor(diet, levels = c("ulva", "wakame")))
+fit_sgr_final <- readRDS(here("models", "fit_sgr_final.rds"))
 
-p_effects <- ggplot(draws_diet, aes(x = sgr_gain, y = diet, fill = diet)) +
-  geom_vline(xintercept = 0, colour = "grey40", linewidth = 0.4, linetype = "dashed") +
-  stat_halfeye(
-    .width        = c(0.66, 0.95),
-    point_interval = median_qi,
-    slab_alpha    = 0.75,
-    height        = 0.7
-  ) +
-  scale_fill_manual(values = diet_cols, guide = "none") +
-  scale_y_discrete(
-    labels = function(x) parse(text = ifelse(x == "ulva", "italic('Ulva')", "'Wakame'"))
-  ) +
-  labs(
-    x = "Increase in SGR relative to control diet (% per day)",
-    y = NULL,
-  ) +
-  theme_minimal(base_size = 11) +
-  theme(
-    panel.grid  = element_blank(),
-    axis.line.x = element_line(color = "black", linewidth = 0.6),
-    axis.line.y = element_line(color = "black", linewidth = 0.6)
-  )
+sgr_specs <- c(ulva         = "b_dietulva",
+                  wakame       = "b_dietwakame",
+                  feed         = "b_per_capita_feed_z",
+                  start_weight = "b_start_ABW_z")
 
-p_effects
-ggsave(here("figures", "p_effects_sgr.png"), plot = p_effects, dpi = 300, width = 9, height = 6, units = "in")
+eff_sgr <- get_effects(fit_sgr_final, sgr_specs)   # identity transform
+
+p_sgr <- plot_effects(
+  eff_sgr,
+  colours = c(ulva = diet_cols[["ulva"]], wakame = diet_cols[["wakame"]], feed = "grey60", start_weight = "grey80"),
+  labels  = c(ulva = "bolditalic('Ulva')", wakame = "bold('Wakame')",
+              feed = "bold('Feed availability')", start_weight = "bold('Start weight')"),
+  centre = "median", interval = "qi",
+  xlab = "Effect on SGR (% per day)", show_prob = TRUE
+  )  +
+  labs(tag = "B)") +
+  theme(plot.tag = element_text(face = "bold", size = 16))
+
+p_sgr
+ggsave(here("figures", "p_effects_sgr.png"), plot = p_sgr, dpi = 300, width = 9, height = 6, units = "in")
 
 ## Check diagnostics
 

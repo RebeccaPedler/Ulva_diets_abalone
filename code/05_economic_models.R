@@ -1,6 +1,6 @@
 # Project: A probabilistic cost–benefit analysis of macroalgal dietary supplementation in commercial greenlip abalone (Haliotis laevigata) aquaculture
 
-## Step 5: Economic analysis (SGR-based)
+## Step 5: Economic analysis
 
 ### CREATE THEMES
 
@@ -13,6 +13,9 @@ theme_ulva <- function(base_size = 11) {
     theme(
       panel.grid.major  = element_blank(),
       panel.grid.minor  = element_blank(),
+      text              = element_text(family = "Times New Roman"),
+      axis.title        = element_text(size = 14),
+      axis.text         = element_text(size = 12),
       axis.line.x       = element_line(color = "black", linewidth = 0.6),
       axis.line.y       = element_line(color = "black", linewidth = 0.6),
       axis.ticks        = element_line(color = "black", linewidth = 0.4),
@@ -348,13 +351,14 @@ p_saving_curve <- ggplot(saving_curve_df,
              colour = "grey20", linewidth = 0.8, linetype = "dotted") +
   geom_line(linewidth = 1, colour = "black") +
   annotate("richtext",
-           x           = ulva_meal_price,
+           x           = ulva_meal_price + 0.4,
            y           = 0.20,
            label       = sprintf("Actual *Ulva* meal<br>price $%.2f/kg", ulva_meal_price),
-           hjust       = 1.0,
+           hjust       = 0,
            vjust       = 0,
            size        = 4,
            colour      = "black",
+           family      = "Times New Roman",
            fill        = NA,
            label.color = NA) +
   scale_x_continuous(labels = dollar_format(), breaks = seq(0, 20, 2)) +
@@ -366,11 +370,11 @@ p_saving_curve <- ggplot(saving_curve_df,
   ) +
   theme_ulva() +
   theme(
-    axis.title.x = ggtext::element_markdown(size = 12),
+    axis.title.x = ggtext::element_markdown(size = 14),
     axis.ticks.length = unit(0.15, "cm"),
-    axis.text.x = element_text(margin = margin(t = 8), size = 10),
-    axis.text.y = element_text(margin = margin(r = 8), size = 10),
-    axis.title.y = element_text(size = 12)
+    axis.text.x = element_text(margin = margin(t = 8), size = 12),
+    axis.text.y = element_text(margin = margin(r = 8), size = 12),
+    axis.title.y = element_text(size = 14)
   )
 
 print(p_saving_curve)
@@ -417,10 +421,10 @@ p_days <- ggplot(days_df, aes(x = days_saved)) +
   theme_ulva() +
   theme(
     axis.ticks.length = unit(0.15, "cm"),
-    axis.text.x = element_text(margin = margin(t = 8), size = 10),
-    axis.text.y = element_text(margin = margin(r = 8), size = 10),
-    axis.title.x = element_text(size = 12),
-    axis.title.y = element_text(size = 12)
+    axis.text.x = element_text(margin = margin(t = 8), size = 12),
+    axis.text.y = element_text(margin = margin(r = 8), size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14)
   )
 
 print(p_days)
@@ -467,14 +471,6 @@ p_saving_curve_sens <- ggplot(saving_curve_sens_df,
   geom_hline(yintercept = 0.50,
              colour = "grey70", linewidth = 0.8, linetype = "dotted") +
   geom_line(colour = "black", linewidth = 0.7) +
-  annotate("text",
-           x      = ulva_meal_price,
-           y      = 0.12,
-           label  = sprintf("Actual meal\nprice $%.2f/kg", ulva_meal_price),
-           hjust  = -2,
-           vjust  = 0,
-           size   = 3,
-           colour = "#993C1D") +
   scale_linetype_manual(
     values = c("solid", "dashed", "dotted", "dotdash", "longdash", "twodash"),
     name   = "Target harvest\nweight"
@@ -491,7 +487,10 @@ p_saving_curve_sens <- ggplot(saving_curve_sens_df,
     axis.title.x = ggtext::element_markdown(),
     axis.ticks.length = unit(0.15, "cm"),
     axis.text.x = element_text(margin = margin(t = 8)),
-    axis.text.y = element_text(margin = margin(r = 8))
+    axis.text.y = element_text(margin = margin(r = 8)),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 14),
+    legend.position = c(0.15, 0.30)
   )
 
 print(p_saving_curve_sens)
@@ -530,8 +529,10 @@ p_days_sens <- ggplot(days_saved_sens_df, aes(x = days_saved, fill = target_g)) 
   ) +
   theme_ulva() +
   theme(
-    legend.position = c(0.84, 0.75),
-    legend.background = element_rect(fill = "white", colour = NA),
+    legend.position = c(0.15, 0.40),
+    legend.key.size = unit(0.4, "cm"),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 14),
     axis.ticks.length = unit(0.15, "cm"),
     axis.text.x = element_text(margin = margin(t = 8)),
     axis.text.y = element_text(margin = margin(r = 8))
