@@ -26,17 +26,18 @@ theme_ulva <- function(base_size = 11) {
 
 ### ECONOMIC INPUTS (all prices in AUD)
 
-ulva_diet_price  <-  3.78   # $/kg finished Ulva diet
-waka_diet_price  <-  3.72   # $/kg finished wakame diet
-ctrl_diet_price  <-  2.47   # $/kg finished control diet
-ulva_meal_price  <-  8.22   # $/kg Ulva meal
-waka_meal_price  <-  7.88   # $/kg wakame meal
-inclusion        <-  0.20   # inclusion level of both wakame and Ulva
-TARGET_G         <-  90.0   # target harvest weight of abalone
-DAYS             <-  131    # trial duration (days)
-FEED_RATE        <-  0.015  # feed rate across trial period
-SGR_SCALE <- 100 
-CTRL_SGR_SOURCE <- "model"  # Toggle to either "model" for posterior median of the control or "observed" for raw mean of control tanks
+ulva_diet_price  <-  4.28    # $/kg finished Ulva diet
+waka_diet_price  <-  4.22    # $/kg finished wakame diet
+ctrl_diet_price  <-  2.97    # $/kg finished control diet
+ulva_meal_price  <-  8.22    # $/kg Ulva meal
+waka_meal_price  <-  7.88    # $/kg wakame meal
+inclusion        <-  0.20    # inclusion level of both wakame and Ulva
+TARGET_G         <-  90.0    # target harvest weight of abalone
+DAYS             <-  131     # trial duration (days)
+FEED_RATE        <-  0.01    # feed rate across trial period
+SGR_SCALE        <-  100      # corrects SGR to deccelerate as abalone get larger (assumes linear relationship and c = 1/b = 0.328 where b = 3.05 from the WL relationship)
+GROWTH_C         <-  0.328     
+CTRL_SGR_SOURCE  <- "model"  # Toggle to either "model" for posterior median of the control or "observed" for raw mean of control tanks
 
 ## Range for feed's share of total opex (used in sensitivity analysis in Part D)
 feed_share_ref  <- 0.20 # Assumes that on average, feed will account for 0.20 of OPEX
@@ -215,14 +216,21 @@ ggsave(here("figures", "p_premium.png"), plot = p_premium, dpi = 300, width = 8,
 # Ulva SGR per posterior draw (per-day proportion): control SGR plus the modelled Ulva advantage
 ulva_sgr <- function(b) ctrl_sgr + b / SGR_SCALE
 
-# Days to reach a given target weight, for a given SGR
+# Weight each diet reaches at the end of the trial (based on its SGR)
+w_end_trial <- function(sgr_val) W0_ref * exp(sgr_val * DAYS)
+
+# Days to reach a given target weight at a given SGR
+# Growth is size dependant (set by c and assumes linear growth) - calibrated so each diet still reaches its observed trial-end weight after DAYS days
 days_to_target <- function(sgr_val, target_g = TARGET_G) {
-  log(target_g / W0_ref) / sgr_val
+  if (GROWTH_C == 0) return(log(target_g / W0_ref) / sgr_val)
+  DAYS * (target_g^GROWTH_C - W0_ref^GROWTH_C) / (w_end_trial(sgr_val)^GROWTH_C - W0_ref^GROWTH_C)
 }
 
-# Cumulative feed (kg) to reach a given target weight, for a given SGR
+# Cumulative feed (kg) per abalone to reach a given target weight at a given SGR
 feed_to_target_kg <- function(sgr_val, target_g = TARGET_G) {
-  FEED_RATE * (target_g - W0_ref) / 1000 / sgr_val
+  if (GROWTH_C == 0) return(FEED_RATE * (target_g - W0_ref) / 1000 / sgr_val)
+  r <- (w_end_trial(sgr_val)^GROWTH_C - W0_ref^GROWTH_C) / (GROWTH_C * DAYS)
+  FEED_RATE * (target_g^(GROWTH_C + 1) - W0_ref^(GROWTH_C + 1)) / ((GROWTH_C + 1) * r) / 1000
 }
 
 # Control feed cost and days to a given target
