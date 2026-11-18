@@ -369,4 +369,23 @@ p_hm <- plot_effects(eff_hm, colours = hm_fill, labels = hm_labels,
 p_hm
 ggsave(here("figures", "p_hm_forest.png"), p_hm, dpi = 300, width = 12, height = 12, units = "in")
 
+# Add in icon depicting the different tissue types
+# Set directory to icon
+abalone_icon <- here("figures", "icons", "labelled_abalone.png") 
+
+p_hm <- p_hm + theme(text = element_text(family = "serif"))
+
+final_plot <- ggdraw(p_hm) +
+  draw_image(
+    abalone_icon,
+    x = 0.57, y = 0.05,        
+    width = 0.44, height = 0.28,
+    halign = 0.5, valign = 0.5 
+  ) +
+  theme(plot.background = element_rect(fill = "white", colour = NA))
+
+final_plot
+
+ggsave(here("figures", "p_hm_forest_icon.png"), final_plot, width = 35, height = 25, units = "cm", dpi = 600, bg = "white")                                  
+
 ### END OF SCRIPT ###
