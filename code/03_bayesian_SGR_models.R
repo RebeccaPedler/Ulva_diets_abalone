@@ -217,7 +217,9 @@ p_sgr <- plot_effects(
               feed = "bold('Feed availability')", start_weight = "bold('Start weight')"),
   centre = "median", interval = "qi",
   xlab = "Effect on SGR (% per day)", show_prob = TRUE
-)
+  )  +
+  labs(tag = "B)") +
+  theme(plot.tag = element_text(face = "bold", size = 16))
 
 p_sgr
 ggsave(here("figures", "p_effects_sgr.png"), plot = p_sgr, dpi = 300, width = 9, height = 6, units = "in")
