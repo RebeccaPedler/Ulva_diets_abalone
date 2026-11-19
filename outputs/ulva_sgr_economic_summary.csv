@@ -1,2 +1,2 @@
 "model","ctrl_sgr_pct_day","sgr_adv_median_pct_day","sgr_adv_lo95_pct_day","sgr_adv_hi95_pct_day","p_sgr_adv_gt0","days_to_target_ctrl","days_to_target_ulva","days_saved_median","days_saved_lo95","days_saved_hi95","p_days_saved_gt0","total_cost_ctrl","total_cost_ulva_median","net_saving_median","net_saving_lo95","net_saving_hi95","p_saving_gt0","be_meal_median","be_meal_lo95","be_meal_hi95","be_diet_median","be_diet_lo95","be_diet_hi95"
-"primary_model",0.5048,0.08967,0.02953,0.14946,0.996,332.4,276.7,55.7,20.4,84.4,0.996,2.4682,2.2355,0.2326,-0.0527,0.464,0.953,16.63,6.53,26.93,5.962,3.942,8.021
+"primary_model",0.5048,0.08967,0.02953,0.14946,0.996,289.4,245.7,43.6,16,66.1,0.996,2.0331,1.8787,0.1544,-0.0571,0.3261,0.939,14.86,6.01,23.65,5.608,3.839,7.367
