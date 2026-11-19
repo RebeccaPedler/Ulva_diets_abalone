@@ -35,9 +35,8 @@ inclusion        <-  0.20    # inclusion level of both wakame and Ulva
 TARGET_G         <-  90.0    # target harvest weight of abalone
 DAYS             <-  131     # trial duration (days)
 FEED_RATE        <-  0.01    # feed rate across trial period
-SGR_SCALE        <-  100      # corrects SGR to deccelerate as abalone get larger (assumes linear relationship and c = 1/b = 0.328 where b = 3.05 from the WL relationship)
-GROWTH_C         <-  0.328     
-CTRL_SGR_SOURCE  <- "model"  # Toggle to either "model" for posterior median of the control or "observed" for raw mean of control tanks
+SGR_SCALE <- 100 
+CTRL_SGR_SOURCE <- "model"  # Toggle to either "model" for posterior median of the control or "observed" for raw mean of control tanks
 
 ## Range for feed's share of total opex (used in sensitivity analysis in Part D)
 feed_share_ref  <- 0.20 # Assumes that on average, feed will account for 0.20 of OPEX
@@ -216,21 +215,14 @@ ggsave(here("figures", "p_premium.png"), plot = p_premium, dpi = 300, width = 8,
 # Ulva SGR per posterior draw (per-day proportion): control SGR plus the modelled Ulva advantage
 ulva_sgr <- function(b) ctrl_sgr + b / SGR_SCALE
 
-# Weight each diet reaches at the end of the trial (based on its SGR)
-w_end_trial <- function(sgr_val) W0_ref * exp(sgr_val * DAYS)
-
-# Days to reach a given target weight at a given SGR
-# Growth is size dependant (set by c and assumes linear growth) - calibrated so each diet still reaches its observed trial-end weight after DAYS days
+# Days to reach a given target weight, for a given SGR
 days_to_target <- function(sgr_val, target_g = TARGET_G) {
-  if (GROWTH_C == 0) return(log(target_g / W0_ref) / sgr_val)
-  DAYS * (target_g^GROWTH_C - W0_ref^GROWTH_C) / (w_end_trial(sgr_val)^GROWTH_C - W0_ref^GROWTH_C)
+  log(target_g / W0_ref) / sgr_val
 }
 
-# Cumulative feed (kg) per abalone to reach a given target weight at a given SGR
+# Cumulative feed (kg) to reach a given target weight, for a given SGR
 feed_to_target_kg <- function(sgr_val, target_g = TARGET_G) {
-  if (GROWTH_C == 0) return(FEED_RATE * (target_g - W0_ref) / 1000 / sgr_val)
-  r <- (w_end_trial(sgr_val)^GROWTH_C - W0_ref^GROWTH_C) / (GROWTH_C * DAYS)
-  FEED_RATE * (target_g^(GROWTH_C + 1) - W0_ref^(GROWTH_C + 1)) / ((GROWTH_C + 1) * r) / 1000
+  FEED_RATE * (target_g - W0_ref) / 1000 / sgr_val
 }
 
 # Control feed cost and days to a given target
