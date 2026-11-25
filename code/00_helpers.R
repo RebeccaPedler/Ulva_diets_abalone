@@ -28,6 +28,9 @@ posterior_summary_table <- function(model, direction = c("greater", "less"), dig
 
 # FUNCTION FOR CREATING PLOTS
 
+# Convert a log-scale effect to a % change (used by get_effects / plot_effects)
+pct <- function(x) 100 * (exp(x) - 1)
+
 # Font
 windowsFonts(`Times New Roman` = windowsFont("Times New Roman"))
                  
