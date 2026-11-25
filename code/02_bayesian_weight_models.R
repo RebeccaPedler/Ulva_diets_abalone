@@ -300,7 +300,7 @@ ref_weight <- tank_df |>
   pull(ref)
 
 b <- as_draws_df(fit_weight_final)$b_dietulva
-pct <- exp(b) - 1                          # proportional effect (log weight)
+pct_change <- exp(b) - 1                          # proportional effect (log weight)
 gms <- if (!is.na(ref_weight)) pct * ref_weight else NULL   # absolute grams gain
 
 final_summary_weight <- tibble(
@@ -312,10 +312,10 @@ final_summary_weight <- tibble(
   lower95     = quantile(b, 0.025),
   upper95     = quantile(b, 0.975),
   p_gt_0      = mean(b > 0),
-  pct_mean    = mean(pct),
-  pct_median  = median(pct),
-  pct_lower95 = quantile(pct, 0.025),
-  pct_upper95 = quantile(pct, 0.975),
+  pct_mean    = mean(pct_change),
+  pct_median  = median(pct_change),
+  pct_lower95 = quantile(pct_change, 0.025),
+  pct_upper95 = quantile(pct_change, 0.975),
   # absolute grams gain (needs ref_weight)
   g_mean      = if (!is.null(gms)) mean(gms)            else NA_real_,
   g_median    = if (!is.null(gms)) median(gms)          else NA_real_,
