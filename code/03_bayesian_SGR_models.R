@@ -323,7 +323,7 @@ ref_sgr <- tank_df |>
   pull(ref)
 
 b <- as_draws_df(fit_sgr_final)$b_dietulva
-pct <- if (!is.na(ref_sgr)) 100 * b / ref_sgr else NULL   # SGR gain as % of the control SGR
+pct_of_control <- if (!is.na(ref_sgr)) 100 * b / ref_sgr else NULL   # SGR gain as % of the control SGR
 
 final_summary_sgr <- tibble(
   response    = "SGR",
@@ -336,10 +336,10 @@ final_summary_sgr <- tibble(
   p_gt_0      = mean(b > 0),
 
   # SGR gain relative to control SGR (needs ref_sgr)
-  pct_mean    = if (!is.null(pct)) mean(pct)            else NA_real_,
-  pct_median  = if (!is.null(pct)) median(pct)          else NA_real_,
-  pct_lower95 = if (!is.null(pct)) quantile(pct, 0.025) else NA_real_,
-  pct_upper95 = if (!is.null(pct)) quantile(pct, 0.975) else NA_real_
+  pct_mean    = if (!is.null(pct)) mean(pct_of_control)            else NA_real_,
+  pct_median  = if (!is.null(pct)) median(pct_of_control)          else NA_real_,
+  pct_lower95 = if (!is.null(pct)) quantile(pct_of_control, 0.025) else NA_real_,
+  pct_upper95 = if (!is.null(pct)) quantile(pct_of_control, 0.975) else NA_real_
 )
 
 print(final_summary_sgr)
