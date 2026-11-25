@@ -26,7 +26,7 @@ posterior_summary_table <- function(model, direction = c("greater", "less"), dig
     mutate(across(where(is.numeric), ~ round(.x, digits)))
 }
 
-# FUNCTION FOR GETTING POSTERIOR PROBABILITY PLOTS
+# FUNCTION FOR CREATING PLOTS
 
 # Font
 windowsFonts(`Times New Roman` = windowsFont("Times New Roman"))
